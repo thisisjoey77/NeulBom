@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Story Time Activity</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <script src="api-helper.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>📖 Story Time</h2>
+    <p>AI가 시작하는 이야기를 듣고, 음성으로 이어서 이야기를 만들어 보세요!</p>
+    <button id="startStoryBtn">이야기 시작</button>
+    <div id="storyDisplay" style="margin: 24px 0; font-size: 1.2em; min-height: 60px; background: #f5f5f5; padding: 15px; border-radius: 8px; color: #1a4b84; font-weight: 500;"></div>
+    <button id="continueBtn" style="display: none; font-size: 1.1em; padding: 10px 20px; margin: 10px 0;">🎤 음성으로 이어가기</button>
+    <div id="statusDisplay" style="margin: 10px 0; color: #666; font-style: italic;"></div>
+    <div id="userInputDisplay" style="display: none; margin: 10px 0; padding: 10px; background: #e8f4f8; border-left: 4px solid #2196F3; color: #1565C0; font-style: italic;"></div>
+    <div id="aiStoryDisplay" style="margin-top: 24px; color: #2a5; font-size: 1.1em; background: #f0f8f0; padding: 15px; border-radius: 8px; min-height: 40px;"></div>
+  </div>
+  <script src="storyTime.js"></script>
+</body>
+</html>

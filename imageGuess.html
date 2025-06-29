@@ -1,0 +1,28 @@
+<!-- imageGuess.html - 동물 그림 묘사 맞히기 게임 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>동물 그림 묘사 맞히기 (Image Guess)</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="api-helper.js"></script>
+</head>
+<body>
+  <div class="twentyq-container">
+    <div class="twentyq-title">동물 그림 묘사 맞히기</div>
+    <div id="gameInstructions">
+      아래 그림을 보고, 최대한 자세히 묘사해 주세요!<br>
+      AI가 여러분의 설명을 듣고 어떤 동물인지 맞혀볼 거예요.<br>
+      (동물 후보: 얼룩말, 돼지, 소, 강아지, 고양이, 닭)
+    </div>
+    <div id="imageArea" style="margin:18px 0;"></div>
+    <form id="descForm" autocomplete="off">
+      <input type="text" id="descInput" placeholder="그림을 자세히 설명해 주세요" style="width:80%;padding:10px 12px;border-radius:8px;border:1.5px solid #2196f3;font-size:1.08em;">
+      <button type="submit">설명 제출</button>
+    </form>
+    <div id="aiGuess" style="margin:18px 0 0 0;font-size:1.15em;color:#ffe082;"></div>
+    <button id="restartBtn" style="display:none;margin-top:18px;">다시하기</button>
+  </div>
+  <script src="imageGuess.js"></script>
+</body>
+</html>

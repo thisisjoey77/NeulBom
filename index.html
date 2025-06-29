@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Coala Neulbom Home</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="api-helper.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to Coala! 🐨</h2>
+    <h2>🎤 음성으로 질문하고, AI 응답을 들으세요</h2>
+    <button id="start">🎙️ 말하기 시작</button>
+    <p><strong>입력 텍스트:</strong> <span id="inputText"></span></p>
+    <p><strong>AI 응답:</strong> <span id="aiResponse"></span></p>
+    <div>현재 인원: <span id="playerCountDisplay">0</span>명</div>
+    <div style="margin: 16px 0;">
+      <label for="gameSelect"><strong>게임 선택:</strong></label>
+      <select id="gameSelect" style="font-size:1em; padding:4px 8px;">
+        <option value="index.html">Home</option>
+        <option value="commandAI.html">Command AI</option>
+        <option value="temp.html">Jump Game</option>
+        <option value="369.html">369 Game</option>
+        <option value="lastWord.html">끝말잇기 Game</option>
+        <option value="gomoku.html">Gomoku Game</option>
+        <option value="br31.html">BR31 Game</option>
+        <option value="fruitList.html">Fruit List</option>
+        <option value="flagGame.html">Flag Game</option>
+        <option value="firstSoundGame.html">초성게임 (First Sound Game)</option>
+        <option value="telephoneGame.html">Telephone Game</option>
+        <option value="storyTime.html">Story Time</option>
+        <option value="twentyQ.html">스무고개 (20 Questions)</option>
+        <option value="guessPerson.html">인물 맞히기 (Guess the Person)</option>
+        <option value="imageGuess.html">이미지 퀴즈 (Image Guess)</option>
+      </select>
+      <button id="startGameBtn" style="margin-left:10px; font-size:1em; padding:4px 16px;">게임 시작</button>
+    </div>
+    <img id="cam" src="http://localhost:5000/video-feed-369" width="640" height="480">
+  </div>
+  <script>
+    document.getElementById('startGameBtn').onclick = function() {
+      const game = document.getElementById('gameSelect').value;
+      window.location.href = game;
+    };
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
+
+

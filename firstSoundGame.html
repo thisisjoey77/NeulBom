@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>초성게임 (First Sound Game)</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="firstSoundGame.js"></script>
+  <style>
+    body { font-family: 'Noto Sans KR', Arial, sans-serif; background: #f7f7f7; }
+    .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 2px 16px rgba(0,0,0,0.10); padding: 32px 24px; text-align: center; }
+    .chosung { font-size: 2.2em; font-weight: bold; color: #1976d2; margin: 24px 0 16px 0; }
+    .result { font-size: 1.2em; margin: 16px 0; color: #444; }
+    .tries { color: #d32f2f; font-weight: bold; }
+    input[type=text] { font-size: 1.1em; padding: 6px 12px; border-radius: 6px; border: 1px solid #bbb; }
+    button { font-size: 1.1em; padding: 6px 18px; border-radius: 6px; background: #1976d2; color: #fff; border: none; margin-left: 8px; }
+    button:active { background: #125ea2; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>초성게임 (First Sound Game)</h2>
+    <div class="chosung" id="chosungDisplay">초성</div>
+    <form id="guessForm" autocomplete="off">
+      <input type="text" id="userGuess" placeholder="정답을 입력하세요" autofocus>
+      <button type="submit">제출</button>
+    </form>
+    <div class="result" id="resultDisplay"></div>
+    <div id="hintDisplay" style="margin: 12px 0; color: #1976d2; font-size: 1.1em;"></div>
+    <div class="tries">남은 시도: <span id="triesLeft">5</span></div>
+    <button id="restartBtn" style="display:none; margin-top:18px;">다시하기</button>
+  </div>
+</body>
+</html>

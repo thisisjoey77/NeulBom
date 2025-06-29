@@ -1,0 +1,30 @@
+<!-- commandAI.html - 코알라 명령어 이동 게임 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>코알라 명령어 이동 (Command AI)</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script src="commandAI.js"></script>
+</head>
+<body>
+  <div class="twentyq-container">
+    <div class="twentyq-title">코알라 명령어 이동</div>
+    <div id="gameInstructions">
+      아래 5x5 격자에서 코알라를 <span style="font-size:1.3em;">🏁</span> 위치까지 이동시켜 보세요!<br>
+      <b>가능한 명령어:</b> <span style="color:#1976d2;">앞으로 가</span>, <span style="color:#1976d2;">돌아</span> (시계방향 회전)<br>
+      여러 개의 명령어를 한 번에 입력해도 돼요.<br>
+      예시: "앞으로 가 앞으로 가 돌아 앞으로 가"
+    </div>
+    <div id="p5-holder" style="margin:18px 0; min-height:420px; background:#f5f5f5; border-radius:12px; box-shadow:0 2px 16px rgba(33,150,243,0.08);"></div>
+    <form id="cmdForm" autocomplete="off">
+      <input type="text" id="cmdInput" placeholder="명령어를 입력하세요" style="width:80%;padding:10px 12px;border-radius:8px;border:1.5px solid #2196f3;font-size:1.08em;">
+      <button type="submit">실행</button>
+    </form>
+    <div id="cmdResult" style="margin:18px 0 0 0;font-size:1.15em;color:#1976d2;"></div>
+    <button id="restartBtn" style="display:none;margin-top:18px;">다시하기</button>
+    <div style="margin-top:10px;font-size:0.95em;color:#888;">※ <b>coalanew.png</b> 파일이 이 폴더에 있어야 코알라가 보입니다.</div>
+  </div>
+</body>
+</html>
