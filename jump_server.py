@@ -48,58 +48,62 @@ def index():
 
 @app.route('/process_frame', methods=['POST', 'GET'])
 def process_frame():
+    global br31_jump_count, br31_jump_times_global, br31_person_history, br31_person_states, br31_last_jump_time, br31_can_jump
     if request.method == 'GET':
         return jsonify({'message': 'Use POST to upload frames for processing'}), 200
-    
+
     # Check if frame is in files or in form data
     if 'frame' not in request.files:
         return jsonify({'error': 'No frame uploaded'}), 400
-    
+
     file = request.files['frame']
-    
+
     # Check if file is empty
     if file.filename == '':
         return jsonify({'error': 'Empty file uploaded'}), 400
-    
+
     try:
         # Read file content
         file_content = file.read()
         print(f'Received file size: {len(file_content)} bytes')
-        
+
         if len(file_content) == 0:
             return jsonify({'error': 'Empty file content'}), 400
-        
+
         # Check if it's a valid image by looking at the first few bytes
         if len(file_content) < 10:
             return jsonify({'error': 'File too small to be a valid image'}), 400
-            
+
         # Check for JPEG header
         if not (file_content[:2] == b'\xff\xd8' or file_content[:3] == b'\x89PNG' or file_content[:4] == b'data'):
             print(f'Invalid file header: {file_content[:10]}')
             return jsonify({'error': 'Invalid image format - not a JPEG or PNG'}), 400
-        
+
         # Convert to numpy array
         file_bytes = np.frombuffer(file_content, np.uint8)
         print(f'Numpy array size: {len(file_bytes)}')
-        
+
         if len(file_bytes) == 0:
             return jsonify({'error': 'Empty numpy array'}), 400
-        
+
         # Decode image
         frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        
+
         if frame is None:
             return jsonify({'error': 'Failed to decode image - invalid format or corrupted data'}), 400
-        
+
         print(f'Successfully decoded frame with shape: {frame.shape}')
-        
+
     except Exception as e:
         print(f'Error processing uploaded file: {e}')
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'File processing error: {str(e)}'}), 400
-    # Run YOLO pose detection
+
+    # Run YOLO pose detection and jump detection for browser frames
     try:
+        # Lower threshold for browser testing
+        JUMP_THRESHOLD = 20
         print('Loading YOLO model...')
         model = YOLO('yolov8n-pose.pt')
         print('Running YOLO inference...')
@@ -108,8 +112,52 @@ def process_frame():
         keypoints = results[0].keypoints.xy.cpu().numpy() if results[0].keypoints is not None else []
         num_people = len(keypoints)
         print(f'Detected {num_people} people')
-        # Optionally, you can return more detection results here
-        return jsonify({'people': num_people})
+        print(f'Keypoints: {keypoints}')
+        current_time = time.time()
+        jump_times = []
+        ids_in_frame = []
+        for i, kp in enumerate(keypoints):
+            if kp.shape[0] == 0:
+                continue
+            nose = kp[0]
+            print(f'Person {i} nose_y: {nose[1]}')
+            nose_x, nose_y = nose[0], nose[1]
+            person_id = i
+            ids_in_frame.append(person_id)
+            prev_y = br31_person_history.get(person_id, nose_y)
+            state = br31_person_states.get(person_id, 'ground')
+            print(f'Person {person_id} prev_y: {prev_y}, nose_y: {nose_y}, state: {state}')
+            if state == 'ground' and prev_y - nose_y > JUMP_THRESHOLD:
+                print(f'JUMP DETECTED for person {person_id}!')
+                jump_times.append((person_id, current_time))
+                br31_person_states[person_id] = 'air'
+                br31_jump_times_global.append(current_time)
+            elif state == 'air':
+                if abs(nose_y - prev_y) < JUMP_THRESHOLD // 3:
+                    br31_person_states[person_id] = 'ground'
+            br31_person_history[person_id] = nose_y
+        for pid in list(br31_person_history.keys()):
+            if pid not in ids_in_frame:
+                del br31_person_history[pid]
+                if pid in br31_person_states:
+                    del br31_person_states[pid]
+        # Synchronized jump detection (like jump game)
+        all_on_ground = all(br31_person_states.get(pid, 'ground') == 'ground' for pid in ids_in_frame)
+        if len(br31_jump_times_global) >= len(keypoints) and br31_can_jump and all_on_ground and len(keypoints) > 0:
+            window = max(br31_jump_times_global[-len(keypoints):]) - min(br31_jump_times_global[-len(keypoints):])
+            print(f'Jump window: {window}, SYNC_WINDOW: {SYNC_WINDOW}')
+            if window <= SYNC_WINDOW:
+                br31_jump_count += 1
+                br31_last_jump_time = current_time
+                br31_can_jump = False
+                print(f'JUMP COUNT INCREMENTED! New count: {br31_jump_count}')
+        if not br31_can_jump and all_on_ground:
+            br31_can_jump = True
+            br31_jump_times_global = []
+        if br31_jump_count > 0 and br31_last_jump_time and (current_time - br31_last_jump_time > JUMP_END_TIMEOUT):
+            br31_jump_times_global = []
+        # Return both people and jump count for debugging
+        return jsonify({'people': num_people, 'jumps': br31_jump_count})
     except Exception as e:
         print(f'YOLO processing error: {e}')
         import traceback

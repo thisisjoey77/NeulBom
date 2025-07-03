@@ -155,6 +155,31 @@ const getBackendUrl = () => {
     }
 
     // Update the display based on game state
+    let jumpFrameInterval = null;
+
+    // Helper: capture a frame from the webcam video element as a Blob
+    async function captureFrameBlob() {
+      if (!video || video.readyState < 2) return null;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+    }
+
+    // Send frame to backend for jump detection
+    async function sendJumpFrame() {
+      const blob = await captureFrameBlob();
+      if (!blob) return;
+      const formData = new FormData();
+      formData.append('frame', blob, 'frame.jpg');
+      fetch(getBackendUrl() + '/process_frame', {
+        method: 'POST',
+        body: formData
+      }).catch(() => {});
+    }
+
     function updateDisplay() {
       const now = Date.now();
       const elapsed = (now - gameState.phaseStartTime) / 1000;
@@ -232,6 +257,10 @@ const getBackendUrl = () => {
             .catch(err => {
               console.error('Failed to get jump count:', err);
             });
+          
+          if (!jumpFrameInterval) {
+            jumpFrameInterval = setInterval(sendJumpFrame, 50);
+          }
           break;
 
         case 'result':
