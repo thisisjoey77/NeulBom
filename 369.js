@@ -89,21 +89,17 @@ function speakAiResponse(text, onFinished = null) {
 // --- End Helper function ---
 
 // Dynamic backend URL based on environment
+
+// Always use the public IP for all fetches, protocol based on current page
 const getBackendUrl = () => {
-  // If running on localhost, use HTTP
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:5000';
-  }
-  // If running on HTTPS (production), use HTTPS backend
   if (window.location.protocol === 'https:') {
     return 'https://54.180.16.112:5000';
   }
-  // Default to HTTP
   return 'http://54.180.16.112:5000';
 };
 
 function pollPeopleCount() {
-  fetch(getBackendUrl() + '/people_count') // Use dynamic backend URL
+  fetch(getBackendUrl() + '/people_count')
     .then(res => {
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
