@@ -111,7 +111,7 @@ function listenForUserInputs() {
     recognition.start();
     isListening = true;
     
-    // Set a timeout to force end after some time
+    // Set a timeout to force end after some time if no speech is detected
     if (inputTimeout) clearTimeout(inputTimeout);
     inputTimeout = setTimeout(() => {
       if (isListening) {
@@ -124,7 +124,7 @@ function listenForUserInputs() {
           processUserInputs();
         }
       }
-    }, 10000); // 10 seconds total timeout
+    }, 8000); // 8 seconds total timeout
   } catch (error) {
     console.error('Failed to start speech recognition:', error);
     hideLoading();
@@ -188,29 +188,9 @@ function handleUserInput(transcript) {
   
   if (inputTimeout) clearTimeout(inputTimeout);
   
-  if (userInputs.length >= playerCount) {
-    // Got enough inputs, stop listening and process
-    if (isListening) {
-      recognition.stop();
-    }
-    processUserInputs();
-  } else {
-    // Still need more inputs, show progress
-    showLoading(`입력 받음: ${userInputs.length}/${playerCount} - 계속 말해주세요`);
-    
-    // Give a bit more time for remaining inputs
-    inputTimeout = setTimeout(() => {
-      if (isListening) {
-        recognition.stop();
-      }
-      if (userInputs.length > 0) {
-        processUserInputs();
-      } else {
-        aiResponseSpan.textContent = '입력이 없어서 게임을 종료합니다.';
-        gameOver = true;
-      }
-    }, 5000); // 5 more seconds
-  }
+  // Always process inputs after receiving speech, don't wait for more
+  console.log('Processing inputs:', userInputs);
+  processUserInputs();
 }
 
 function normalizeInput(input) {
@@ -314,8 +294,8 @@ function aiTurn() {
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = 'ko-KR';
 recognition.interimResults = true; // Enable interim results for better feedback
-recognition.continuous = true; // Keep listening continuously
-recognition.maxAlternatives = 3; // Get multiple alternatives
+recognition.continuous = false; // Don't keep listening continuously
+recognition.maxAlternatives = 1; // Just get the best result
 
 let isListening = false;
 let recognitionTimeout = null;
@@ -343,21 +323,19 @@ recognition.onresult = (event) => {
     inputTextSpan.textContent = finalTranscript || interimTranscript;
   }
   
-  // Process final results
+  // Process final results immediately and stop recognition
   if (finalTranscript) {
     console.log('Final transcript:', finalTranscript);
-    handleUserInput(finalTranscript);
-  }
-  
-  // Reset timeout when we get speech
-  if (recognitionTimeout) {
-    clearTimeout(recognitionTimeout);
-  }
-  recognitionTimeout = setTimeout(() => {
+    hideLoading();
     if (isListening) {
       recognition.stop();
+      isListening = false;
     }
-  }, 2000); // Stop after 2 seconds of silence
+    if (recognitionTimeout) {
+      clearTimeout(recognitionTimeout);
+    }
+    handleUserInput(finalTranscript);
+  }
 };
 
 recognition.onend = () => {
@@ -366,14 +344,7 @@ recognition.onend = () => {
   if (recognitionTimeout) {
     clearTimeout(recognitionTimeout);
   }
-  // Only restart if we are still waiting for user input (not during AI turn)
-  if (!awaitingAITurn && playerCount > 0 && !gameOver) {
-    setTimeout(() => {
-      if (!isListening) {
-        listenForUserInputs();
-      }
-    }, 500);
-  }
+  // Don't automatically restart - let the game logic decide when to restart
 };
 
 recognition.onerror = (e) => {
