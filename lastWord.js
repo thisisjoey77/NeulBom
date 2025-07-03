@@ -1,4 +1,13 @@
 // --- 끝말잇기 Game Logic ---
+
+// Dynamic backend URL based on environment
+const getBackendUrl = () => {
+  if (window.location.protocol === 'https:') {
+    return 'https://54.180.16.112:5000';
+  }
+  return 'http://54.180.16.112:5000';
+};
+
 let wordHistory = [];
 let playerCount = 0;
 let currentTurn = 0; // 0 ~ (playerCount-1) for players, playerCount for computer
@@ -13,7 +22,7 @@ async function pollPeopleCount() {
   if (!blob) return;
   const formData = new FormData();
   formData.append('frame', blob, 'frame.jpg');
-  const backendUrl = (typeof getBackendUrl === 'function' ? getBackendUrl() : '') + '/people_count';
+  const backendUrl = getBackendUrl() + '/people_count';
   try {
     const response = await fetch(backendUrl, { method: 'POST', body: formData });
     const data = await response.json();
@@ -45,7 +54,7 @@ async function updatePeopleCount() {
   const formData = new FormData();
   formData.append('frame', blob, 'frame.jpg');
   // Use dynamic backend URL if available
-  const backendUrl = (typeof getBackendUrl === 'function' ? getBackendUrl() : '') + '/people_count';
+  const backendUrl = getBackendUrl() + '/people_count';
   try {
     const response = await fetch(backendUrl, { method: 'POST', body: formData });
     const data = await response.json();
