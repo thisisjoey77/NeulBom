@@ -1,3 +1,28 @@
+// Camera initialization (same as script.js)
+async function initCamera() {
+  try {
+    const video = document.getElementById('cam');
+    if (!video) return;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480 },
+      audio: false
+    });
+    video.srcObject = stream;
+    // Optionally update camera status
+    const statusElement = document.getElementById('cameraStatus');
+    if (statusElement) {
+      statusElement.textContent = 'Camera status: Active';
+    }
+  } catch (error) {
+    const statusElement = document.getElementById('cameraStatus');
+    if (statusElement) {
+      statusElement.textContent = 'Camera status: Error - ' + error.message;
+    }
+    console.error('Camera initialization failed:', error);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initCamera);
 // --- 끝말잇기 Game Logic ---
 
 // Dynamic backend URL based on environment
