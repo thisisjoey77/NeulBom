@@ -37,8 +37,7 @@
     </div>
     <video id="cam" width="640" height="480" autoplay playsinline style="border: 2px solid #333; background-color: #000;"></video>
     <div>
-      <p id="cameraStatus">Camera status: Loading...</p>
-      <p id="detectionResults">Detection results: Waiting...</p>
+
     </div>
   </div>
   <script>
@@ -68,31 +67,24 @@
   </script>
   <script>
     const video = document.getElementById('cam');
-    const cameraStatus = document.getElementById('cameraStatus');
-    const detectionResults = document.getElementById('detectionResults');
     let stream = null;
     const BACKEND_URL = window.BACKEND_URL;
     
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      cameraStatus.textContent = 'Camera status: Requesting permission...';
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(s => {
           stream = s;
           video.srcObject = stream;
-          cameraStatus.textContent = 'Camera status: Connected ✓';
           
           // Start people detection using server camera
           startFrameUpload();
         })
         .catch(err => {
-          console.error('Camera access denied:', err);
-          cameraStatus.textContent = 'Camera status: Using server camera instead';
-          // Start people detection using server camera even if local camera fails
+          // Camera access denied, use server camera
           startFrameUpload();
         });
     } else {
-      cameraStatus.textContent = 'Camera status: Using server camera';
-      // Start people detection using server camera
+      // getUserMedia not supported, use server camera
       startFrameUpload();
     }
 
@@ -103,20 +95,17 @@
           .then(res => res.json())
           .then(data => {
             if (data.people !== undefined) {
-              detectionResults.textContent = `Detection results: ${data.people} people detected`;
               // Update the player count display
               const playerCountDisplay = document.getElementById('playerCountDisplay');
               if (playerCountDisplay) {
                 playerCountDisplay.textContent = data.people;
               }
             } else if (data.error) {
-              detectionResults.textContent = `Detection error: ${data.error}`;
-              console.error('Backend error:', data.error);
+              // Backend error
             }
           })
           .catch(error => {
-            console.error('Fetch error:', error);
-            detectionResults.textContent = `Network error: ${error.message}`;
+            // Network error
           });
       }, 1000);
     }

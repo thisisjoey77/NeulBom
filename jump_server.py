@@ -69,7 +69,6 @@ def process_frame():
     try:
         # Read file content
         file_content = file.read()
-        print(f'Received file size: {len(file_content)} bytes')
 
         if len(file_content) == 0:
             return jsonify({'error': 'Empty file content'}), 400
@@ -80,12 +79,10 @@ def process_frame():
 
         # Check for JPEG header
         if not (file_content[:2] == b'\xff\xd8' or file_content[:3] == b'\x89PNG' or file_content[:4] == b'data'):
-            print(f'Invalid file header: {file_content[:10]}')
             return jsonify({'error': 'Invalid image format - not a JPEG or PNG'}), 400
 
         # Convert to numpy array
         file_bytes = np.frombuffer(file_content, np.uint8)
-        print(f'Numpy array size: {len(file_bytes)}')
 
         if len(file_bytes) == 0:
             return jsonify({'error': 'Empty numpy array'}), 400
@@ -96,12 +93,7 @@ def process_frame():
         if frame is None:
             return jsonify({'error': 'Failed to decode image - invalid format or corrupted data'}), 400
 
-        print(f'Successfully decoded frame with shape: {frame.shape}')
-
     except Exception as e:
-        print(f'Error processing uploaded file: {e}')
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': f'File processing error: {str(e)}'}), 400
 
     # Run YOLO pose detection and jump detection for browser frames
@@ -109,13 +101,9 @@ def process_frame():
         # Lower threshold for browser testing
         JUMP_THRESHOLD = 20
         # YOLO model is now loaded globally for performance
-        print('Running YOLO inference...')
         results = model(frame)
-        print('Processing results...')
         keypoints = results[0].keypoints.xy.cpu().numpy() if results[0].keypoints is not None else []
         num_people = len(keypoints)
-        print(f'Detected {num_people} people')
-        print(f'Keypoints: {keypoints}')
         current_time = time.time()
         jump_times = []
         ids_in_frame = []
@@ -123,15 +111,12 @@ def process_frame():
             if kp.shape[0] == 0:
                 continue
             nose = kp[0]
-            print(f'Person {i} nose_y: {nose[1]}')
             nose_x, nose_y = nose[0], nose[1]
             person_id = i
             ids_in_frame.append(person_id)
             prev_y = br31_person_history.get(person_id, nose_y)
             state = br31_person_states.get(person_id, 'ground')
-            print(f'Person {person_id} prev_y: {prev_y}, nose_y: {nose_y}, state: {state}')
             if state == 'ground' and prev_y - nose_y > JUMP_THRESHOLD:
-                print(f'JUMP DETECTED for person {person_id}!')
                 jump_times.append((person_id, current_time))
                 br31_person_states[person_id] = 'air'
                 br31_jump_times_global.append(current_time)
@@ -148,23 +133,17 @@ def process_frame():
         all_on_ground = all(br31_person_states.get(pid, 'ground') == 'ground' for pid in ids_in_frame)
         if len(br31_jump_times_global) >= len(keypoints) and br31_can_jump and all_on_ground and len(keypoints) > 0:
             window = max(br31_jump_times_global[-len(keypoints):]) - min(br31_jump_times_global[-len(keypoints):])
-            print(f'Jump window: {window}, SYNC_WINDOW: {SYNC_WINDOW}')
             if window <= SYNC_WINDOW:
                 br31_jump_count += 1
                 br31_last_jump_time = current_time
                 br31_can_jump = False
-                print(f'JUMP COUNT INCREMENTED! New count: {br31_jump_count}')
         if not br31_can_jump and all_on_ground:
             br31_can_jump = True
             br31_jump_times_global = []
         if br31_jump_count > 0 and br31_last_jump_time and (current_time - br31_last_jump_time > JUMP_END_TIMEOUT):
             br31_jump_times_global = []
-        # Return both people and jump count for debugging
         return jsonify({'people': num_people, 'jumps': br31_jump_count})
     except Exception as e:
-        print(f'YOLO processing error: {e}')
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': f'YOLO processing error: {str(e)}'}), 500
 
 @app.route('/video_feed')
@@ -192,7 +171,7 @@ def video_feed():
         
         # Check if camera is accessible
         if not cap.isOpened():
-            print("Warning: Cannot access camera on server")
+            # Warning: Cannot access camera on server
             # Return a simple error frame
             error_frame = np.zeros((480, 640, 3), dtype=np.uint8)
             cv2.putText(error_frame, 'Camera not available on server', (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
@@ -205,7 +184,7 @@ def video_feed():
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
-                    print("Warning: Failed to read from camera")
+                    # Warning: Failed to read from camera
                     break
                 results = model(frame)
                 boxes = results[0].boxes.xyxy.cpu().numpy() if results[0].boxes is not None else []
@@ -381,7 +360,7 @@ def video_feed_br():
                 while cap.isOpened():
                     ret, frame = cap.read()
                     if not ret:
-                        print('[ERROR] Camera read failed')
+                        # ERROR: Camera read failed
                         break
                     try:
                         results = model(frame)
@@ -437,7 +416,7 @@ def video_feed_br():
                         yield (b'--frame\r\n'
                                b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
                     except Exception as e:
-                        print('[ERROR] Exception in frame processing:', e)
+                        # ERROR: Exception in frame processing
                         # Return a red error frame
                         error_frame = np.zeros((360, 480, 3), dtype=np.uint8)
                         cv2.putText(error_frame, 'ERROR', (100, 200), cv2.FONT_HERSHEY_SIMPLEX, 3, (0,0,255), 8)
@@ -448,7 +427,7 @@ def video_feed_br():
             finally:
                 cap.release()
         except Exception as e:
-            print('[ERROR] Exception in /video-feed-br:', e)
+            # ERROR: Exception in /video-feed-br
             # Return a red error frame
             error_frame = np.zeros((360, 480, 3), dtype=np.uint8)
             cv2.putText(error_frame, 'SERVER ERROR', (10, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 6)

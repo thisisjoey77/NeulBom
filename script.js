@@ -14,7 +14,7 @@ async function initCamera() {
   try {
     const video = document.getElementById('cam');
     if (!video) {
-      console.error('Video element not found');
+      // Video element not found
       return;
     }
     
@@ -24,7 +24,6 @@ async function initCamera() {
     });
     
     video.srcObject = stream;
-    console.log('Camera initialized successfully');
     
     // Update camera status
     const statusElement = document.getElementById('cameraStatus');
@@ -32,7 +31,6 @@ async function initCamera() {
       statusElement.textContent = 'Camera status: Active';
     }
   } catch (error) {
-    console.error('Error accessing camera:', error);
     const statusElement = document.getElementById('cameraStatus');
     if (statusElement) {
       statusElement.textContent = 'Camera status: Error - ' + error.message;
@@ -177,15 +175,13 @@ async function captureFrameBlob() {
 async function updatePeopleCount() {
   const blob = await captureFrameBlob();
   if (!blob) {
-    console.log('No frame captured - camera may not be ready');
+    // No frame captured - camera may not be ready
     return;
   }
   
   const formData = new FormData();
   formData.append('frame', blob, 'frame.jpg');
   const backendUrl = getBackendUrl() + '/people_count';
-  
-  console.log('Sending request to:', backendUrl);
   
   try {
     const response = await fetch(backendUrl, { 
@@ -195,9 +191,6 @@ async function updatePeopleCount() {
         // Don't set Content-Type header - let browser set it for multipart/form-data
       }
     });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
     
     if (!response.ok) {
       const text = await response.text();

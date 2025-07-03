@@ -89,10 +89,7 @@
         <div id="result" class="result" style="display: none;"></div>
       </div>
     </div>
-    <div>
-      <p id="cameraStatus">Camera status: Loading...</p>
-      <p id="detectionResults">Detection results: Waiting...</p>
-    </div>
+
     <div style="margin-top: 20px;">
       <button onclick="window.location.href='index.html'" style="padding: 10px 20px; font-size: 16px;">Back to Home</button>
     </div>
@@ -109,24 +106,17 @@ const getBackendUrl = () => {
 };
 
     const video = document.getElementById('cam');
-    const cameraStatus = document.getElementById('cameraStatus');
-    const detectionResults = document.getElementById('detectionResults');
     let stream = null;
     
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      cameraStatus.textContent = 'Camera status: Requesting permission...';
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(s => {
           stream = s;
           video.srcObject = stream;
-          cameraStatus.textContent = 'Camera status: Connected ✓';
         })
         .catch(err => {
-          console.error('Camera access denied:', err);
-          cameraStatus.textContent = 'Camera status: Access denied or not available';
+          // Camera access denied
         });
-    } else {
-      cameraStatus.textContent = 'Camera status: getUserMedia not supported';
     }
 
     // Game state variables
@@ -260,7 +250,7 @@ const getBackendUrl = () => {
               }
             })
             .catch(err => {
-              console.error('Failed to get jump count:', err);
+              // Silent fail
             });
           
           if (!jumpFrameInterval) {
