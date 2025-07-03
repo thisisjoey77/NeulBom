@@ -91,22 +91,28 @@
     function startFrameUpload() {
       // Instead of uploading frames, use the people_count endpoint which uses the server's camera
       setInterval(() => {
-        fetch(getBackendUrl() + '/people_count')
-          .then(res => res.json())
-          .then(data => {
-            if (data.people !== undefined) {
-              // Update the player count display
-              const playerCountDisplay = document.getElementById('playerCountDisplay');
-              if (playerCountDisplay) {
-                playerCountDisplay.textContent = data.people;
-              }
-            } else if (data.error) {
-              // Backend error
+        fetch(getBackendUrl() + '/people_count', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({}) // send empty JSON body
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.people !== undefined) {
+            // Update the player count display
+            const playerCountDisplay = document.getElementById('playerCountDisplay');
+            if (playerCountDisplay) {
+              playerCountDisplay.textContent = data.people;
             }
-          })
-          .catch(error => {
-            // Network error
-          });
+          } else if (data.error) {
+            // Backend error
+          }
+        })
+        .catch(error => {
+          // Network error
+        });
       }, 1000);
     }
   </script>
