@@ -67,54 +67,43 @@
           video.srcObject = stream;
           cameraStatus.textContent = 'Camera status: Connected ✓';
           
-          // Wait for video to load before starting frame upload
-          video.addEventListener('loadedmetadata', () => {
-            startFrameUpload();
-          });
+          // Start people detection using server camera
+          startFrameUpload();
         })
         .catch(err => {
           console.error('Camera access denied:', err);
-          cameraStatus.textContent = 'Camera status: Access denied or not available';
+          cameraStatus.textContent = 'Camera status: Using server camera instead';
+          // Start people detection using server camera even if local camera fails
+          startFrameUpload();
         });
     } else {
-      cameraStatus.textContent = 'Camera status: getUserMedia not supported';
+      cameraStatus.textContent = 'Camera status: Using server camera';
+      // Start people detection using server camera
+      startFrameUpload();
     }
 
     function startFrameUpload() {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      
+      // Instead of uploading frames, use the people_count endpoint which uses the server's camera
       setInterval(() => {
-        if (video.readyState === 4) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => {
-            if (blob) {
-              const formData = new FormData();
-              formData.append('frame', blob, 'frame.jpg');
-              fetch(BACKEND_URL, {
-                method: 'POST',
-                body: formData
-              })
-              .then(res => res.json())
-              .then(data => {
-                // Display detection results
-                if (data.people !== undefined) {
-                  detectionResults.textContent = `Detection results: ${data.people} people detected`;
-                } else if (data.error) {
-                  detectionResults.textContent = `Detection error: ${data.error}`;
-                }
-              })
-              .catch(err => {
-                console.error('Frame upload error:', err);
-                detectionResults.textContent = 'Detection error: Network issue';
-              });
+        fetch('http://54.180.16.112:5000/people_count')
+          .then(res => res.json())
+          .then(data => {
+            if (data.people !== undefined) {
+              detectionResults.textContent = `Detection results: ${data.people} people detected`;
+              // Update the player count display
+              const playerCountDisplay = document.getElementById('playerCountDisplay');
+              if (playerCountDisplay) {
+                playerCountDisplay.textContent = data.people;
+              }
+            } else if (data.error) {
+              detectionResults.textContent = `Detection error: ${data.error}`;
+              console.error('Backend error:', data.error);
             }
-          }, 'image/jpeg', 0.8);
-        }
+          })
+          .catch(error => {
+            console.error('Fetch error:', error);
+            detectionResults.textContent = `Network error: ${error.message}`;
+          });
       }, 1000);
     }
   </script>

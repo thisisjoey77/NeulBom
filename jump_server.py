@@ -50,27 +50,71 @@ def index():
 def process_frame():
     if request.method == 'GET':
         return jsonify({'message': 'Use POST to upload frames for processing'}), 200
+    
+    # Check if frame is in files or in form data
     if 'frame' not in request.files:
         return jsonify({'error': 'No frame uploaded'}), 400
+    
     file = request.files['frame']
-    in_memory_file = io.BytesIO()
-    file.save(in_memory_file)
-    in_memory_file.seek(0)
-    file_bytes = np.frombuffer(in_memory_file.read(), np.uint8)
-    frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-    if frame is None:
-        return jsonify({'error': 'Invalid image data'}), 400
+    
+    # Check if file is empty
+    if file.filename == '':
+        return jsonify({'error': 'Empty file uploaded'}), 400
+    
+    try:
+        # Read file content
+        file_content = file.read()
+        print(f'Received file size: {len(file_content)} bytes')
+        
+        if len(file_content) == 0:
+            return jsonify({'error': 'Empty file content'}), 400
+        
+        # Check if it's a valid image by looking at the first few bytes
+        if len(file_content) < 10:
+            return jsonify({'error': 'File too small to be a valid image'}), 400
+            
+        # Check for JPEG header
+        if not (file_content[:2] == b'\xff\xd8' or file_content[:3] == b'\x89PNG' or file_content[:4] == b'data'):
+            print(f'Invalid file header: {file_content[:10]}')
+            return jsonify({'error': 'Invalid image format - not a JPEG or PNG'}), 400
+        
+        # Convert to numpy array
+        file_bytes = np.frombuffer(file_content, np.uint8)
+        print(f'Numpy array size: {len(file_bytes)}')
+        
+        if len(file_bytes) == 0:
+            return jsonify({'error': 'Empty numpy array'}), 400
+        
+        # Decode image
+        frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return jsonify({'error': 'Failed to decode image - invalid format or corrupted data'}), 400
+        
+        print(f'Successfully decoded frame with shape: {frame.shape}')
+        
+    except Exception as e:
+        print(f'Error processing uploaded file: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'File processing error: {str(e)}'}), 400
     # Run YOLO pose detection
     try:
+        print('Loading YOLO model...')
         model = YOLO('yolov8n-pose.pt')
+        print('Running YOLO inference...')
         results = model(frame)
+        print('Processing results...')
         keypoints = results[0].keypoints.xy.cpu().numpy() if results[0].keypoints is not None else []
         num_people = len(keypoints)
+        print(f'Detected {num_people} people')
         # Optionally, you can return more detection results here
         return jsonify({'people': num_people})
     except Exception as e:
-        print('YOLO processing error:', e)
-        return jsonify({'error': 'YOLO processing error'}), 500
+        print(f'YOLO processing error: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'YOLO processing error: {str(e)}'}), 500
 
 @app.route('/video_feed')
 def video_feed():
@@ -418,6 +462,63 @@ def openai_chat():
     except Exception as e:
         print(f'OpenAI API Error: {e}')
         return jsonify({'error': 'Failed to call OpenAI API'}), 500
+
+@app.route('/test_yolo')
+def test_yolo():
+    try:
+        # Create a simple test image with a person-like shape
+        test_image = np.zeros((480, 640, 3), dtype=np.uint8)
+        # Draw a simple stick figure (head, body, arms, legs)
+        cv2.circle(test_image, (320, 100), 30, (255, 255, 255), -1)  # head
+        cv2.rectangle(test_image, (300, 130), (340, 250), (255, 255, 255), -1)  # body
+        cv2.rectangle(test_image, (260, 150), (300, 170), (255, 255, 255), -1)  # left arm
+        cv2.rectangle(test_image, (340, 150), (380, 170), (255, 255, 255), -1)  # right arm
+        cv2.rectangle(test_image, (300, 250), (320, 350), (255, 255, 255), -1)  # left leg
+        cv2.rectangle(test_image, (320, 250), (340, 350), (255, 255, 255), -1)  # right leg
+        
+        print('Testing YOLO with synthetic image...')
+        model = YOLO('yolov8n-pose.pt')
+        results = model(test_image)
+        
+        print('YOLO model loaded successfully')
+        print(f'Results: {results}')
+        
+        if results and len(results) > 0:
+            result = results[0]
+            print(f'Result type: {type(result)}')
+            print(f'Result attributes: {dir(result)}')
+            
+            # Check if keypoints exist
+            if hasattr(result, 'keypoints') and result.keypoints is not None:
+                keypoints = result.keypoints.xy.cpu().numpy()
+                print(f'Keypoints shape: {keypoints.shape}')
+                print(f'Keypoints: {keypoints}')
+                num_people = len(keypoints)
+            else:
+                print('No keypoints found')
+                num_people = 0
+                
+            # Check if boxes exist
+            if hasattr(result, 'boxes') and result.boxes is not None:
+                boxes = result.boxes.xyxy.cpu().numpy()
+                print(f'Boxes shape: {boxes.shape}')
+                print(f'Boxes: {boxes}')
+            else:
+                print('No boxes found')
+        else:
+            print('No results from YOLO')
+            num_people = 0
+        
+        return jsonify({
+            'test_result': 'success',
+            'people_detected': num_people,
+            'message': 'YOLO model test completed'
+        })
+    except Exception as e:
+        print(f'YOLO test error: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'YOLO test failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     import os
