@@ -90,7 +90,7 @@ function speakAiResponse(text, onFinished = null) {
 
 
 function pollPeopleCount() {
-  fetch('http://localhost:5000/people_count')
+  fetch('http://54.180.16.112:5000/people_count') // Use deployed backend
     .then(res => {
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
@@ -98,6 +98,7 @@ function pollPeopleCount() {
       return res.json();
     })
     .then(data => {
+      console.log('People count:', data.people); // Debug log
       playerCount = data.people;
       document.getElementById('playerCountDisplay').textContent = playerCount;
     })
@@ -115,18 +116,22 @@ function nextTurn() {
 
 function listenForUserInputs() {
   if (isListening || !awaitingUserInput) {
+    console.log('Cannot start listening: isListening=', isListening, 'awaitingUserInput=', awaitingUserInput);
     return; // Already listening or not supposed to listen
   }
   
+  console.log('Starting to listen for user input...');
   showLoading('플레이어 입력 대기 중... (말해주세요)');
   
   try {
     recognition.start();
     isListening = true;
+    console.log('Speech recognition started successfully');
     
     // Set a timeout to force end after some time if no speech is detected
     if (inputTimeout) clearTimeout(inputTimeout);
     inputTimeout = setTimeout(() => {
+      console.log('Timeout reached - stopping recognition');
       if (isListening && awaitingUserInput) {
         recognition.stop();
         hideLoading();
@@ -339,17 +344,21 @@ recognition.onstart = () => {
 };
 
 recognition.onresult = (event) => {
+  console.log('Speech recognition result event triggered');
   let interimTranscript = '';
   let finalTranscript = '';
   
   for (let i = event.resultIndex; i < event.results.length; ++i) {
     const transcript = event.results[i][0].transcript;
+    console.log(`Result ${i}: "${transcript}", isFinal: ${event.results[i].isFinal}`);
     if (event.results[i].isFinal) {
       finalTranscript += transcript;
     } else {
       interimTranscript += transcript;
     }
   }
+  
+  console.log('Final transcript:', finalTranscript, 'Interim:', interimTranscript);
   
   // Show interim results for better user feedback
   if (inputTextSpan) {
@@ -358,7 +367,7 @@ recognition.onresult = (event) => {
   
   // Process final results immediately and stop recognition
   if (finalTranscript && awaitingUserInput) {
-    console.log('Final transcript:', finalTranscript);
+    console.log('Processing final transcript:', finalTranscript);
     hideLoading();
     if (isListening) {
       recognition.stop();
@@ -383,6 +392,9 @@ recognition.onend = () => {
 recognition.onerror = (e) => {
   console.log('Speech recognition error:', e.error);
   isListening = false;
+  awaitingUserInput = false; // Stop waiting for input on error
+  hideLoading(); // Hide loading overlay
+  
   if (recognitionTimeout) {
     clearTimeout(recognitionTimeout);
   }
@@ -391,29 +403,27 @@ recognition.onerror = (e) => {
   switch (e.error) {
     case 'no-speech':
       console.log('No speech detected');
+      aiResponseSpan.textContent = '음성이 감지되지 않았습니다. 다시 시도해주세요.';
       break;
     case 'audio-capture':
       console.log('Audio capture failed');
+      aiResponseSpan.textContent = '마이크에 접근할 수 없습니다. 마이크를 확인해주세요.';
       break;
     case 'not-allowed':
       console.log('Microphone access denied');
       aiResponseSpan.textContent = '마이크 접근이 거부되었습니다. 브라우저 설정에서 마이크를 허용해주세요.';
-      return;
+      gameOver = true; // End game on permission denial
+      break;
     case 'network':
       console.log('Network error');
+      aiResponseSpan.textContent = '네트워크 오류가 발생했습니다.';
       break;
     default:
       console.log('Other error:', e.error);
+      aiResponseSpan.textContent = '음성 인식 오류가 발생했습니다.';
   }
   
-  // Restart listening after error (except for permission errors)
-  if (e.error !== 'not-allowed' && !awaitingAITurn && playerCount > 0 && !gameOver) {
-    setTimeout(() => {
-      if (!isListening) {
-        listenForUserInputs();
-      }
-    }, 1000);
-  }
+  // Don't automatically restart - let user manually restart if needed
 };
 
 // Loading overlay helpers
