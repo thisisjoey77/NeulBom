@@ -89,30 +89,39 @@
     }
 
     function startFrameUpload() {
-      // Instead of uploading frames, use the people_count endpoint which uses the server's camera
+      // Upload frames from browser camera to the backend for people counting
+      const canvas = document.createElement('canvas');
+      const video = document.getElementById('cam');
       setInterval(() => {
-        fetch(getBackendUrl() + '/people_count', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({}) // send empty JSON body
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.people !== undefined) {
-            // Update the player count display
-            const playerCountDisplay = document.getElementById('playerCountDisplay');
-            if (playerCountDisplay) {
-              playerCountDisplay.textContent = data.people;
+        if (!video || video.readyState !== 4) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+          if (!blob) return;
+          const formData = new FormData();
+          formData.append('frame', blob, 'frame.jpg');
+          fetch(getBackendUrl() + '/people_count', {
+            method: 'POST',
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.people !== undefined) {
+              // Update the player count display
+              const playerCountDisplay = document.getElementById('playerCountDisplay');
+              if (playerCountDisplay) {
+                playerCountDisplay.textContent = data.people;
+              }
+            } else if (data.error) {
+              // Backend error
             }
-          } else if (data.error) {
-            // Backend error
-          }
-        })
-        .catch(error => {
-          // Network error
-        });
+          })
+          .catch(error => {
+            // Network error
+          });
+        }, 'image/jpeg');
       }, 1000);
     }
   </script>
