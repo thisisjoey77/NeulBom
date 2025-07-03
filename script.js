@@ -9,6 +9,40 @@ const getBackendUrl = () => {
   return 'http://54.180.16.112:5000';
 };
 
+// Initialize camera
+async function initCamera() {
+  try {
+    const video = document.getElementById('cam');
+    if (!video) {
+      console.error('Video element not found');
+      return;
+    }
+    
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480 },
+      audio: false
+    });
+    
+    video.srcObject = stream;
+    console.log('Camera initialized successfully');
+    
+    // Update camera status
+    const statusElement = document.getElementById('cameraStatus');
+    if (statusElement) {
+      statusElement.textContent = 'Camera status: Active';
+    }
+  } catch (error) {
+    console.error('Error accessing camera:', error);
+    const statusElement = document.getElementById('cameraStatus');
+    if (statusElement) {
+      statusElement.textContent = 'Camera status: Error - ' + error.message;
+    }
+  }
+}
+
+// Initialize camera when page loads
+document.addEventListener('DOMContentLoaded', initCamera);
+
 const startBtn = document.getElementById('start');
 const inputTextSpan = document.getElementById('inputText');
 const aiResponseSpan = document.getElementById('aiResponse');
@@ -142,30 +176,91 @@ async function captureFrameBlob() {
 // POST a frame to /people_count and update the UI
 async function updatePeopleCount() {
   const blob = await captureFrameBlob();
-  if (!blob) return;
+  if (!blob) {
+    console.log('No frame captured - camera may not be ready');
+    return;
+  }
+  
   const formData = new FormData();
   formData.append('frame', blob, 'frame.jpg');
   const backendUrl = getBackendUrl() + '/people_count';
+  
+  console.log('Sending request to:', backendUrl);
+  
   try {
-    const response = await fetch(backendUrl, { method: 'POST', body: formData });
+    const response = await fetch(backendUrl, { 
+      method: 'POST', 
+      body: formData,
+      headers: {
+        // Don't set Content-Type header - let browser set it for multipart/form-data
+      }
+    });
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    
     if (!response.ok) {
       const text = await response.text();
-      console.error('Network error:', text);
+      console.error('Network error:', response.status, text);
+      
+      // Update detection results
+      const detectionElement = document.getElementById('detectionResults');
+      if (detectionElement) {
+        detectionElement.textContent = `Detection results: Error ${response.status}`;
+      }
       return;
     }
+    
+    const contentType = response.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+    
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      
+      // Update detection results
+      const detectionElement = document.getElementById('detectionResults');
+      if (detectionElement) {
+        detectionElement.textContent = 'Detection results: Backend returned non-JSON response';
+      }
+      return;
+    }
+    
     let data;
     try {
       data = await response.json();
     } catch (jsonErr) {
       const text = await response.text();
       console.error('JSON parse error:', jsonErr, 'Response text:', text);
+      
+      // Update detection results
+      const detectionElement = document.getElementById('detectionResults');
+      if (detectionElement) {
+        detectionElement.textContent = 'Detection results: JSON parse error';
+      }
       return;
     }
+    
+    console.log('Received data:', data);
+    
     playerCount = data.people || 0;
     const display = document.getElementById('playerCountDisplay');
     if (display) display.textContent = playerCount;
+    
+    // Update detection results
+    const detectionElement = document.getElementById('detectionResults');
+    if (detectionElement) {
+      detectionElement.textContent = `Detection results: ${playerCount} people detected`;
+    }
+    
   } catch (e) {
     console.error('Failed to fetch people count:', e);
+    
+    // Update detection results
+    const detectionElement = document.getElementById('detectionResults');
+    if (detectionElement) {
+      detectionElement.textContent = 'Detection results: Network error - ' + e.message;
+    }
   }
 }
 
