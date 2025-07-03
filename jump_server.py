@@ -407,18 +407,38 @@ def video_feed_br():
     return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/people_count')
+@app.route('/people_count', methods=['POST'])
 def people_count():
-    model = YOLO('yolov8n-pose.pt')
-    cap = cv2.VideoCapture(0)
-    ret, frame = cap.read()
-    num_people = 0
-    if ret:
+    # Accepts an uploaded image frame from the browser and returns the number of people detected
+    if 'frame' not in request.files:
+        return jsonify({'error': 'No frame uploaded'}), 400
+    file = request.files['frame']
+    if file.filename == '':
+        return jsonify({'error': 'Empty file uploaded'}), 400
+    try:
+        file_content = file.read()
+        if len(file_content) == 0:
+            return jsonify({'error': 'Empty file content'}), 400
+        if len(file_content) < 10:
+            return jsonify({'error': 'File too small to be a valid image'}), 400
+        if not (file_content[:2] == b'\xff\xd8' or file_content[:3] == b'\x89PNG' or file_content[:4] == b'data'):
+            return jsonify({'error': 'Invalid image format - not a JPEG or PNG'}), 400
+        file_bytes = np.frombuffer(file_content, np.uint8)
+        if len(file_bytes) == 0:
+            return jsonify({'error': 'Empty numpy array'}), 400
+        frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if frame is None:
+            return jsonify({'error': 'Failed to decode image - invalid format or corrupted data'}), 400
+    except Exception as e:
+        return jsonify({'error': f'File processing error: {str(e)}'}), 400
+    try:
+        model = YOLO('yolov8n-pose.pt')
         results = model(frame)
         keypoints = results[0].keypoints.xy.cpu().numpy() if results[0].keypoints is not None else []
         num_people = len(keypoints)
-    cap.release()
-    return jsonify({'people': num_people})
+        return jsonify({'people': num_people})
+    except Exception as e:
+        return jsonify({'error': f'YOLO processing error: {str(e)}'}), 500
 
 
 @app.route('/jump_count')
