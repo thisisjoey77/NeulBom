@@ -119,15 +119,34 @@ recognition.onerror = (event) => {
 
 let peopleCount = 0;
 
-function updatePeopleCount() {
-    fetch('/people_count')
-        .then(response => response.json())
-        .then(data => {
-            peopleCount = data.people;
-            // Optionally update the UI if you have an element for it
-            const display = document.getElementById('peopleCountDisplay');
-            if (display) display.textContent = peopleCount;
-        });
+// Helper: capture a frame from the webcam video element as a Blob
+async function captureFrameBlob() {
+  const video = document.getElementById('cam') || document.getElementById('video');
+  if (!video || video.readyState < 2) return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+}
+
+// POST a frame to /people_count and update the UI
+async function updatePeopleCount() {
+  const blob = await captureFrameBlob();
+  if (!blob) return;
+  const formData = new FormData();
+  formData.append('frame', blob, 'frame.jpg');
+  const backendUrl = (typeof getBackendUrl === 'function' ? getBackendUrl() : '') + '/people_count';
+  try {
+    const response = await fetch(backendUrl, { method: 'POST', body: formData });
+    const data = await response.json();
+    peopleCount = data.people || 0;
+    const display = document.getElementById('playerCountDisplay');
+    if (display) display.textContent = peopleCount;
+  } catch (e) {
+    console.error('Failed to fetch people count:', e);
+  }
 }
 
 // Example: Call this when you detect the prompt "lets play 369"
@@ -135,12 +154,5 @@ function onLetsPlay369Prompt() {
     updatePeopleCount();
 }
 
-function pollPeopleCount() {
-  fetch('https://54.180.16.112:5000/people_count')
-    .then(res => res.json())
-    .then(data => {
-      playerCount = data.people;
-      document.getElementById('playerCountDisplay').textContent = playerCount;
-    });
-}
-setInterval(pollPeopleCount, 2000);
+// Poll people count every 2 seconds using webcam frame
+setInterval(updatePeopleCount, 2000);
