@@ -10,6 +10,7 @@ let playerCount = 0;
 let currentNumber = 1;
 let isFirstRound = true;
 let awaitingAITurn = false;
+let awaitingUserInput = false; // Add this flag to track input state
 let userInputs = [];
 let inputTimeout = null;
 let gameOver = false;
@@ -101,8 +102,8 @@ function nextTurn() {
 }
 
 function listenForUserInputs() {
-  if (isListening) {
-    return; // Already listening
+  if (isListening || !awaitingUserInput) {
+    return; // Already listening or not supposed to listen
   }
   
   showLoading('플레이어 입력 대기 중... (말해주세요)');
@@ -114,9 +115,10 @@ function listenForUserInputs() {
     // Set a timeout to force end after some time if no speech is detected
     if (inputTimeout) clearTimeout(inputTimeout);
     inputTimeout = setTimeout(() => {
-      if (isListening) {
+      if (isListening && awaitingUserInput) {
         recognition.stop();
         hideLoading();
+        awaitingUserInput = false;
         if (userInputs.length === 0) {
           aiResponseSpan.textContent = '입력이 없어서 게임을 종료합니다.';
           gameOver = true;
@@ -128,12 +130,13 @@ function listenForUserInputs() {
   } catch (error) {
     console.error('Failed to start speech recognition:', error);
     hideLoading();
+    awaitingUserInput = false;
     aiResponseSpan.textContent = '음성 인식을 시작할 수 없습니다. 브라우저가 마이크를 지원하는지 확인해주세요.';
   }
 }
 
 function startUserInputPhase() {
-  if (gameOver) return;
+  if (gameOver || awaitingUserInput) return;
   if (playerCount === 0) {
     aiResponseSpan.textContent = '카메라에 사람이 감지될 때까지 대기 중...';
     aiResponseSpan.style.color = '';
@@ -150,6 +153,7 @@ function startUserInputPhase() {
   }
   aiResponseSpan.textContent = message;
   userInputs = [];
+  awaitingUserInput = true; // Set this flag before starting to listen
   if (inputTimeout) clearTimeout(inputTimeout);
   listenForUserInputs();
 }
@@ -166,6 +170,7 @@ startBtn.addEventListener('click', async () => {
   gameOver = false;
   userInputs = [];
   awaitingAITurn = false;
+  awaitingUserInput = false; // Reset this flag
   startUserInputPhase();
 });
 
@@ -176,10 +181,17 @@ function splitKoreanNumbers(input) {
 }
 
 function handleUserInput(transcript) {
-  if (gameOver || awaitingAITurn) return;
+  if (gameOver || awaitingAITurn || !awaitingUserInput) return;
   
   console.log('Voice input received:', transcript);
   hideLoading();
+  
+  // Stop listening immediately
+  awaitingUserInput = false;
+  if (isListening) {
+    recognition.stop();
+    isListening = false;
+  }
   
   const parts = splitKoreanNumbers(transcript);
   for (let part of parts) {
@@ -188,7 +200,7 @@ function handleUserInput(transcript) {
   
   if (inputTimeout) clearTimeout(inputTimeout);
   
-  // Always process inputs after receiving speech, don't wait for more
+  // Process inputs immediately
   console.log('Processing inputs:', userInputs);
   processUserInputs();
 }
@@ -324,7 +336,7 @@ recognition.onresult = (event) => {
   }
   
   // Process final results immediately and stop recognition
-  if (finalTranscript) {
+  if (finalTranscript && awaitingUserInput) {
     console.log('Final transcript:', finalTranscript);
     hideLoading();
     if (isListening) {
