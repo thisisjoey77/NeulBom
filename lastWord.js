@@ -232,76 +232,18 @@ function validateAndProceed(word, playerIdx) {
 }
 
 function isValidKkeutmal(prev, curr) {
-  // 두음법칙을 고려한 끝말잇기 검증
+  // 끝말잇기 검증: 다음 단어는 이전 단어의 마지막 글자로 시작해야 함
   const lastChar = prev[prev.length-1];
   const firstChar = curr[0];
   
-  // 1. 직접 연결되는 경우
+  // 기본 규칙: 마지막 글자와 첫 글자가 정확히 일치해야 함
   if (lastChar === firstChar) {
     return true;
   }
   
-  // 2. 두음법칙 적용 - ㄹ이 ㅇ이나 없어지는 경우
-  if (lastChar === '리' || lastChar === '름' || lastChar === '력' || lastChar === '록' || 
-      lastChar === '론' || lastChar === '래' || lastChar === '로' || lastChar === '루' ||
-      lastChar === '르' || lastChar === '를' || lastChar === '린' || lastChar === '렬') {
-    // ㄹ로 끝나는 단어 뒤에 이, 예, 여, 요, 야, 얘 등으로 시작하는 단어
-    if (firstChar === '이' || firstChar === '예' || firstChar === '여' || 
-        firstChar === '요' || firstChar === '야' || firstChar === '얘' ||
-        firstChar === '영' || firstChar === '엽' || firstChar === '염' ||
-        firstChar === '연' || firstChar === '열' || firstChar === '입' ||
-        firstChar === '일' || firstChar === '인' || firstChar === '임') {
-      return true;
-    }
-  }
-  
-  // 3. ㄴ이 두음법칙으로 변하는 경우
-  if (lastChar === '니' || lastChar === '는' || lastChar === '늘' || lastChar === '남' ||
-      lastChar === '날' || lastChar === '난' || lastChar === '널' || lastChar === '논') {
-    // ㄴ으로 끝나는 단어 뒤에 이, 여 등으로 시작하는 단어
-    if (firstChar === '이' || firstChar === '여' || firstChar === '연' || 
-        firstChar === '열' || firstChar === '영' || firstChar === '염') {
-      return true;
-    }
-  }
-  
-  // 4. 받침 ㄱ, ㅋ, ㄲ의 경우
-  const lastCharCode = lastChar.charCodeAt(0);
-  const syllableIndex = lastCharCode - 0xAC00;
-  const finalConsonant = syllableIndex % 28;
-  
-  // 받침이 ㄱ(1), ㅋ(21), ㄲ(2)인 경우
-  if (finalConsonant === 1 || finalConsonant === 21 || finalConsonant === 2) {
-    const expectedInitial = String.fromCharCode(0xAC00 + (7 * 588)); // '가'
-    if (firstChar === '가' || firstChar === '고' || firstChar === '구' || 
-        firstChar === '그' || firstChar === '기' || firstChar === '개' ||
-        firstChar === '게' || firstChar === '갸' || firstChar === '겨' ||
-        firstChar === '교' || firstChar === '규' || firstChar === '긔') {
-      return true;
-    }
-  }
-  
-  // 5. 받침 ㄷ, ㅌ, ㅅ, ㅆ, ㅈ, ㅊ, ㅎ의 경우 -> ㄷ 음
-  if (finalConsonant === 7 || finalConsonant === 16 || finalConsonant === 19 || 
-      finalConsonant === 20 || finalConsonant === 17 || finalConsonant === 18 || 
-      finalConsonant === 27) {
-    if (firstChar === '다' || firstChar === '도' || firstChar === '두' || 
-        firstChar === '드' || firstChar === '디' || firstChar === '대' ||
-        firstChar === '데' || firstChar === '댜' || firstChar === '더' ||
-        firstChar === '덕' || firstChar === '던' || firstChar === '들') {
-      return true;
-    }
-  }
-  
-  // 6. 받침 ㅂ, ㅍ의 경우 -> ㅂ 음
-  if (finalConsonant === 8 || finalConsonant === 17) {
-    if (firstChar === '바' || firstChar === '보' || firstChar === '부' || 
-        firstChar === '브' || firstChar === '비' || firstChar === '배' ||
-        firstChar === '베' || firstChar === '뱌' || firstChar === '버' ||
-        firstChar === '별' || firstChar === '병' || firstChar === '본') {
-      return true;
-    }
-  }
+  // 끝말잇기에서는 두음법칙을 적용하지 않음
+  // 예: "물" -> "물고기" (O), "물" -> "일기" (X)
+  // 예: "기술" -> "술집" (O), "기술" -> "입사" (X)
   
   return false;
 }
@@ -364,10 +306,10 @@ function computerTurn() {
 function getValidKoreanWord(startChar, usedWords) {
   // 두음법칙을 고려해서 가능한 시작 글자들을 모두 찾기
   const possibleStartChars = getPossibleStartChars(startChar);
-  
+
   // 모든 가능한 시작 글자에 대해 단어 검색
   const promises = possibleStartChars.map(char => {
-    const url = `https://ko.wiktionary.org/w/api.php?action=query&list=allpages&apnamespace=0&aplimit=20&apprefix=${encodeURIComponent(char)}&format=json&origin=*`;
+    const url = `https://ko.wiktionary.org/w/api.php?action=query&list=allpages&apnamespace=0&aplimit=50&apprefix=${encodeURIComponent(char)}&format=json&origin=*`;
     return fetch(url)
       .then(res => res.json())
       .then(data => {
@@ -375,73 +317,43 @@ function getValidKoreanWord(startChar, usedWords) {
         return pages
           .map(p => p.title)
           .filter(w => {
-            // Only single words (no spaces), length > 1, not used, starts with correct char
-            return w.length > 1 && 
-                   !w.includes(' ') && 
-                   !w.includes(':') && 
-                   !usedWords.includes(w) && 
-                   w[0] === char &&
-                   /^[가-힣]+$/.test(w); // Only Korean characters
+            // Only single words (no spaces), length > 1, not used, first char is in possibleStartChars, and second char is NOT in possibleStartChars
+            return w.length > 1 &&
+                   !w.includes(' ') &&
+                   !w.includes(':') &&
+                   !usedWords.includes(w) &&
+                   possibleStartChars.includes(w[0]) &&
+                   // Prevent multi-syllable prefix matches (e.g., '고가교' for '고')
+                   (w.length < 2 || !possibleStartChars.includes(w[1])) &&
+                   /^[가-힣]+$/.test(w);
           });
       })
       .catch(() => []);
   });
-  
+
   return Promise.all(promises)
     .then(results => {
       // 모든 결과를 합치기
       const allCandidates = results.flat();
-      if (allCandidates.length === 0) return null;
+      // 추가: 끝말잇기 규칙(두음법칙 포함)으로 필터링
+      const validCandidates = allCandidates.filter(candidate => {
+        // lastWord가 비어있으면(첫 턴) 무조건 허용
+        if (!lastWord) return true;
+        // 반드시 첫 글자가 두음법칙을 고려한 올바른 글자인지 확인
+        const prev = lastWord;
+        const curr = candidate;
+        return isValidKkeutmal(prev, curr);
+      });
+      if (validCandidates.length === 0) return null;
       // 랜덤 선택
-      return allCandidates[Math.floor(Math.random() * allCandidates.length)];
+      return validCandidates[Math.floor(Math.random() * validCandidates.length)];
     })
     .catch(() => null);
 }
 
 function getPossibleStartChars(lastChar) {
-  const chars = [lastChar]; // 기본적으로 마지막 글자와 같은 글자
-  
-  // 두음법칙 적용 가능한 경우들 추가
-  
-  // ㄹ로 끝나는 경우
-  if (lastChar === '리' || lastChar === '름' || lastChar === '력' || lastChar === '록' || 
-      lastChar === '론' || lastChar === '래' || lastChar === '로' || lastChar === '루' ||
-      lastChar === '르' || lastChar === '를' || lastChar === '린' || lastChar === '렬') {
-    chars.push('이', '예', '여', '요', '야', '얘', '영', '엽', '염', '연', '열', '입', '일', '인', '임');
-  }
-  
-  // ㄴ으로 끝나는 경우
-  if (lastChar === '니' || lastChar === '는' || lastChar === '늘' || lastChar === '남' ||
-      lastChar === '날' || lastChar === '난' || lastChar === '널' || lastChar === '논') {
-    chars.push('이', '여', '연', '열', '영', '염');
-  }
-  
-  // 받침에 따른 처리
-  const lastCharCode = lastChar.charCodeAt(0);
-  if (lastCharCode >= 0xAC00 && lastCharCode <= 0xD7A3) {
-    const syllableIndex = lastCharCode - 0xAC00;
-    const finalConsonant = syllableIndex % 28;
-    
-    // 받침이 ㄱ, ㅋ, ㄲ인 경우
-    if (finalConsonant === 1 || finalConsonant === 21 || finalConsonant === 2) {
-      chars.push('가', '고', '구', '그', '기', '개', '게', '갸', '겨', '교', '규', '긔');
-    }
-    
-    // 받침이 ㄷ, ㅌ, ㅅ, ㅆ, ㅈ, ㅊ, ㅎ인 경우
-    if (finalConsonant === 7 || finalConsonant === 16 || finalConsonant === 19 || 
-        finalConsonant === 20 || finalConsonant === 17 || finalConsonant === 18 || 
-        finalConsonant === 27) {
-      chars.push('다', '도', '두', '드', '디', '대', '데', '댜', '더', '덕', '던', '들');
-    }
-    
-    // 받침이 ㅂ, ㅍ인 경우
-    if (finalConsonant === 8 || finalConsonant === 17) {
-      chars.push('바', '보', '부', '브', '비', '배', '베', '뱌', '버', '별', '병', '본');
-    }
-  }
-  
-  // 중복 제거하고 반환
-  return [...new Set(chars)];
+  // 끝말잇기에서는 마지막 글자와 정확히 같은 글자로만 시작해야 함
+  return [lastChar];
 }
 
 // To start the game, call startKkeutmalGame();

@@ -9,11 +9,57 @@
   <div class="container">
     <h2>끝말잇기 게임</h2>
     <h3>코알라와 함께 끝말잇기 게임을 하세요!</h3>
-    <img id="cam" src="http://localhost:5000/video-feed-lastWord" width="640" height="480">
+    <video id="cam" width="640" height="480" autoplay playsinline></video>
     <button id="kkeutmalBtn">끝말잇기 시작</button>
     <div id="kkeutmalStatus" style="margin-top: 16px; font-size: 1.2em; color: #333;">플레이어 수를 감지 중...</div>
     <div id="wordHistory" style="margin-top: 10px; font-size: 1em; color: #666;"></div>
   </div>
   <script src="lastWord.js"></script>
+  <script>
+    const video = document.getElementById('cam');
+    let stream = null;
+    const BACKEND_URL = 'http://54.180.16.112:5000/process_frame';
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(s => {
+          stream = s;
+          video.srcObject = stream;
+          startFrameUpload();
+        })
+        .catch(err => {
+          console.error('Camera access denied:', err);
+        });
+    }
+
+    function startFrameUpload() {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.width;
+      canvas.height = video.height;
+      const ctx = canvas.getContext('2d');
+      setInterval(() => {
+        if (video.readyState === 4) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            if (blob) {
+              const formData = new FormData();
+              formData.append('frame', blob, 'frame.jpg');
+              fetch(BACKEND_URL, {
+                method: 'POST',
+                body: formData
+              })
+              .then(res => res.json())
+              .then(data => {
+                // Handle response (e.g., show detection results)
+                // console.log(data);
+              })
+              .catch(err => {
+                // console.error('Frame upload error:', err);
+              });
+            }
+          }, 'image/jpeg', 0.8);
+        }
+      }, 200); // Send 5 frames per second
+    }
+  </script>
 </body>
 </html>

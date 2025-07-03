@@ -1,4 +1,8 @@
-#%pip install flask
+# ...existing code...
+
+# Endpoint to receive and process frames from browser (must be after app is defined)
+import io
+from werkzeug.utils import secure_filename
 from flask import Flask, send_file, Response, jsonify, request
 import subprocess
 import threading
@@ -11,6 +15,9 @@ from ultralytics import YOLO
 from flask_cors import CORS
 import openai
 from dotenv import load_dotenv
+
+# ...existing code...
+#%pip install flask
 
 # Load environment variables
 load_dotenv()
@@ -39,6 +46,31 @@ JUMP_END_TIMEOUT = 2.5
 def index():
     return send_file('temp.html')
 
+@app.route('/process_frame', methods=['POST', 'GET'])
+def process_frame():
+    if request.method == 'GET':
+        return jsonify({'message': 'Use POST to upload frames for processing'}), 200
+    if 'frame' not in request.files:
+        return jsonify({'error': 'No frame uploaded'}), 400
+    file = request.files['frame']
+    in_memory_file = io.BytesIO()
+    file.save(in_memory_file)
+    in_memory_file.seek(0)
+    file_bytes = np.frombuffer(in_memory_file.read(), np.uint8)
+    frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if frame is None:
+        return jsonify({'error': 'Invalid image data'}), 400
+    # Run YOLO pose detection
+    try:
+        model = YOLO('yolov8n-pose.pt')
+        results = model(frame)
+        keypoints = results[0].keypoints.xy.cpu().numpy() if results[0].keypoints is not None else []
+        num_people = len(keypoints)
+        # Optionally, you can return more detection results here
+        return jsonify({'people': num_people})
+    except Exception as e:
+        print('YOLO processing error:', e)
+        return jsonify({'error': 'YOLO processing error'}), 500
 
 @app.route('/video_feed')
 def video_feed():
