@@ -140,7 +140,19 @@ async function updatePeopleCount() {
   const backendUrl = (typeof getBackendUrl === 'function' ? getBackendUrl() : '') + '/people_count';
   try {
     const response = await fetch(backendUrl, { method: 'POST', body: formData });
-    const data = await response.json();
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('Network error:', text);
+      return;
+    }
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonErr) {
+      const text = await response.text();
+      console.error('JSON parse error:', jsonErr, 'Response text:', text);
+      return;
+    }
     playerCount = data.people || 0;
     const display = document.getElementById('playerCountDisplay');
     if (display) display.textContent = playerCount;
@@ -252,15 +264,17 @@ function splitKoreanNumbers(input) {
 function handleUserInput(transcript) {
   if (gameOver) return;
   const parts = splitKoreanNumbers(transcript);
+  console.log('[369] handleUserInput transcript:', transcript, 'split:', parts, 'userInputs before:', userInputs);
   for (let part of parts) {
     userInputs.push(part);
   }
+  console.log('[369] userInputs after:', userInputs, 'playerCount:', playerCount);
   if (inputTimeout) clearTimeout(inputTimeout);
   if (userInputs.length < playerCount) {
-    // Not enough inputs yet, restart listening
+    console.log('[369] Not enough inputs yet, restarting listening');
     listenForUserInputs();
   } else {
-    // Got enough inputs, process immediately
+    console.log('[369] Got enough inputs, calling processUserInputs');
     processUserInputs();
   }
 }
@@ -302,6 +316,7 @@ function normalizeInput(input) {
 
 function processUserInputs() {
   if (gameOver) return;
+  console.log('[369] processUserInputs userInputs:', userInputs, 'playerCount:', playerCount);
   if (userInputs.length === 0) {
     setTimeout(startUserInputPhase, 1000);
     return;
@@ -335,6 +350,7 @@ function processUserInputs() {
     gameOver = true;
     return;
   }
+  console.log('[369] All player inputs valid, AI turn next. currentNumber before:', currentNumber);
   currentNumber += playerCount;
   awaitingAITurn = true;
   setTimeout(aiTurn, 1000);
