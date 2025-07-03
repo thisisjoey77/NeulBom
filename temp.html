@@ -252,6 +252,11 @@ const getBackendUrl = () => {
                 }
                 gameState.phase = 'result';
                 gameState.phaseStartTime = now;
+                // Stop sending frames after jumping phase ends
+                if (jumpFrameInterval) {
+                  clearInterval(jumpFrameInterval);
+                  jumpFrameInterval = null;
+                }
               }
             })
             .catch(err => {

@@ -29,6 +29,10 @@ CORS(app)
 # Configure OpenAI
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+
+# Load YOLO model globally for performance
+model = YOLO('yolov8n-pose.pt')
+
 # Global jump count for BR31
 br31_jump_count = 0
 br31_last_reset = time.time()
@@ -104,8 +108,7 @@ def process_frame():
     try:
         # Lower threshold for browser testing
         JUMP_THRESHOLD = 20
-        print('Loading YOLO model...')
-        model = YOLO('yolov8n-pose.pt')
+        # YOLO model is now loaded globally for performance
         print('Running YOLO inference...')
         results = model(frame)
         print('Processing results...')
