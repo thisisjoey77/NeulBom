@@ -76,6 +76,8 @@ window.onload = function() {
         let reply = data.choices[0].message.content.trim();
         document.getElementById('aiAnswer').textContent = reply;
         messages.push({ role: 'assistant', content: reply });
+        // Debug: log AI reply
+        console.log('AI reply:', reply);
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('aiAnswer').textContent = '오류가 발생했습니다. 다시 시도해주세요.';
@@ -83,11 +85,14 @@ window.onload = function() {
       }
       
       // Check if it's an invalid question (AI reminds about yes/no rule)
-      if (reply.includes('예 또는 아니오로 대답할 수 있는 질문만') || 
-          reply.includes('다시 질문해줘') ||
-          reply.includes('스무고개는')) {
+      // Stricter invalid question check: only match exact phrases at start
+      const invalidPhrases = [
+        '스무고개는 예 또는 아니오로 대답할 수 있는 질문만 할 수 있어! 다시 질문해줘.',
+        '예 또는 아니오로 대답할 수 있는 질문만 해줘!',
+        '다시 질문해줘.'
+      ];
+      if (invalidPhrases.some(phrase => reply.trim().startsWith(phrase))) {
         // Don't increment question count for invalid questions
-        // Remove the last user message and AI response from messages array
         messages.pop(); // Remove AI response
         messages.pop(); // Remove user question
         return; // Don't check for win/lose, just let them try again
