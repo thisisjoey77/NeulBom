@@ -7,6 +7,23 @@ let gameActive = false;
 let timeoutHandle = null;
 const TURN_TIMEOUT = 3000; // 3 seconds per turn
 
+// Use the same people counting logic as script.js
+async function pollPeopleCount() {
+  const blob = await captureFrameBlob();
+  if (!blob) return;
+  const formData = new FormData();
+  formData.append('frame', blob, 'frame.jpg');
+  const backendUrl = (typeof getBackendUrl === 'function' ? getBackendUrl() : '') + '/people_count';
+  try {
+    const response = await fetch(backendUrl, { method: 'POST', body: formData });
+    const data = await response.json();
+    playerCount = data.people || 0;
+    // Optionally update UI
+  } catch (e) {
+    console.error('Failed to fetch people count:', e);
+  }
+}
+
 
 
 // Helper: capture a frame from the webcam video element as a Blob
