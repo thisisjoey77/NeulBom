@@ -2,58 +2,211 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Jump Game Launcher</title>
+  <title>Jump Game</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .game-ui {
+      position: relative;
+      display: inline-block;
+    }
+    .game-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 640px;
+      height: 480px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .target-display {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 255, 255, 0.8);
+      color: black;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .jump-count {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      background: rgba(255, 0, 255, 0.8);
+      color: black;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(165, 42, 42, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 20px;
+      font-size: 72px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .result {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      font-size: 36px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .result.success {
+      background: rgba(0, 255, 0, 0.8);
+      color: black;
+    }
+    .result.fail {
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <h2>Jump Game</h2>
     <h3>Jump with Coala!</h3>
-    <video id="cam" width="640" height="480" autoplay playsinline></video>
+    <div class="game-ui">
+      <img id="videoFeed" src="http://54.180.16.112:5000/video_feed" width="640" height="480" style="border: 2px solid #333;">
+      <div class="game-overlay">
+        <div id="targetDisplay" class="target-display">Target: Loading...</div>
+        <div id="jumpCount" class="jump-count">Jumps: 0</div>
+        <div id="countdown" class="countdown" style="display: none;"></div>
+        <div id="result" class="result" style="display: none;"></div>
+      </div>
+    </div>
+    <div style="margin-top: 20px;">
+      <button onclick="window.location.href='index.html'" style="padding: 10px 20px; font-size: 16px;">Back to Home</button>
+    </div>
   </div>
+
   <script>
-    const video = document.getElementById('cam');
-    let stream = null;
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(s => {
-          stream = s;
-          video.srcObject = stream;
-          startFrameUpload();
-        })
-        .catch(err => {
-          console.error('Camera access denied:', err);
-        });
+    // Game state variables
+    let gameState = {
+      target: 1,
+      jumps: 0,
+      phase: 'show_number', // 'show_number', 'countdown', 'jumping', 'result'
+      phaseStartTime: Date.now(),
+      resultMessage: '',
+      isSuccess: false
+    };
+
+    // DOM elements
+    const targetDisplay = document.getElementById('targetDisplay');
+    const jumpCount = document.getElementById('jumpCount');
+    const countdown = document.getElementById('countdown');
+    const result = document.getElementById('result');
+
+    // Start the game
+    function startGame() {
+      gameState.target = Math.floor(Math.random() * 10) + 1;
+      gameState.jumps = 0;
+      gameState.phase = 'show_number';
+      gameState.phaseStartTime = Date.now();
+      updateDisplay();
     }
 
-    function startFrameUpload() {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.width;
-      canvas.height = video.height;
-      const ctx = canvas.getContext('2d');
-      setInterval(() => {
-        if (video.readyState === 4) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => {
-            if (blob) {
-              const formData = new FormData();
-              formData.append('frame', blob, 'frame.jpg');
-              fetch('http://54.180.16.112:5000/process_frame', {
-                method: 'POST',
-                body: formData
-              })
-              .then(res => res.json())
-              .then(data => {
-                // Handle response (e.g., show detection results)
-              })
-              .catch(err => {
-                // console.error('Frame upload error:', err);
-              });
-            }
-          }, 'image/jpeg', 0.8);
-        }
-      }, 1000);
+    // Update the display based on game state
+    function updateDisplay() {
+      const now = Date.now();
+      const elapsed = (now - gameState.phaseStartTime) / 1000;
+
+      switch (gameState.phase) {
+        case 'show_number':
+          targetDisplay.textContent = `Target: ${gameState.target}`;
+          jumpCount.textContent = `Jumps: ${gameState.jumps}`;
+          countdown.style.display = 'none';
+          result.style.display = 'none';
+          
+          if (elapsed > 1.5) {
+            gameState.phase = 'countdown';
+            gameState.phaseStartTime = now;
+          }
+          break;
+
+        case 'countdown':
+          const secondsLeft = Math.max(0, 3 - Math.floor(elapsed));
+          targetDisplay.textContent = `Target: ${gameState.target}`;
+          jumpCount.textContent = `Jumps: ${gameState.jumps}`;
+          
+          if (secondsLeft > 0) {
+            countdown.textContent = secondsLeft;
+            countdown.style.display = 'block';
+            result.style.display = 'none';
+          } else {
+            countdown.style.display = 'none';
+            gameState.phase = 'jumping';
+            gameState.phaseStartTime = now;
+            // Reset jump count for the server
+            fetch('http://54.180.16.112:5000/reset_jump_count', {
+              method: 'POST'
+            });
+          }
+          break;
+
+        case 'jumping':
+          targetDisplay.textContent = `Target: ${gameState.target}`;
+          countdown.style.display = 'none';
+          result.style.display = 'none';
+          
+          // Poll for jump count from server
+          fetch('http://54.180.16.112:5000/jump_count')
+            .then(res => res.json())
+            .then(data => {
+              gameState.jumps = data.count;
+              jumpCount.textContent = `Jumps: ${gameState.jumps}`;
+              
+              // Check if we should end the jumping phase
+              if (elapsed > 5) { // 5 seconds of jumping time
+                if (gameState.jumps === gameState.target) {
+                  gameState.resultMessage = 'Success! 🎉';
+                  gameState.isSuccess = true;
+                } else {
+                  gameState.resultMessage = `Fail! Got ${gameState.jumps}, needed ${gameState.target}`;
+                  gameState.isSuccess = false;
+                }
+                gameState.phase = 'result';
+                gameState.phaseStartTime = now;
+              }
+            })
+            .catch(err => {
+              console.error('Failed to get jump count:', err);
+            });
+          break;
+
+        case 'result':
+          targetDisplay.textContent = `Target: ${gameState.target}`;
+          jumpCount.textContent = `Jumps: ${gameState.jumps}`;
+          countdown.style.display = 'none';
+          
+          result.textContent = gameState.resultMessage;
+          result.className = gameState.isSuccess ? 'result success' : 'result fail';
+          result.style.display = 'block';
+          
+          if (elapsed > 3) { // Show result for 3 seconds
+            startGame(); // Start next round
+          }
+          break;
+      }
     }
+
+    // Start the game loop
+    startGame();
+    setInterval(updateDisplay, 100); // Update 10 times per second
   </script>
 </body>
 </html>

@@ -7,7 +7,7 @@ let aiWord = "";
 let messages = [
   {
     role: "system",
-    content: "너는 스무고개 게임의 AI 마스터야. 반드시 초등학생(특히 3~6학년)이 잘 알고 쉽게 맞힐 수 있는 명사(사물, 동물, 음식, 캐릭터 등)만 생각해. 너무 어렵거나 생소한 단어, 어른만 아는 단어, 외래어나 전문용어는 절대 고르지 마. 사용자가 예/아니오로 대답할 수 있는 질문을 하면 친절하게 '예' 또는 '아니오'로만 대답해. 만약 사용자가 예/아니오로 대답할 수 없는 질문(예: '이게 뭐야?', '색깔이 뭐야?', '크기가 어떻게 돼?')을 하면, '스무고개는 예 또는 아니오로 대답할 수 있는 질문만 할 수 있어! 다시 질문해줘.'라고 말해줘. 이런 경우 질문 횟수는 세지 않아. 20번 이내에 사용자가 정답을 맞히면 '정답이야! 축하해!'라고 하고, 20번이 지나면 '아쉽지만 정답은 [단어]였어!'라고 알려줘. 정답을 맞히기 전까지는 단어를 절대 직접 말하지 마. 모든 대화는 반말로 해줘."
+    content: "너는 스무고개 게임의 AI 마스터야. 게임이 시작되면 반드시 초등학생(특히 3~6학년)이 잘 알고 쉽게 맞힐 수 있는 명사(사물, 동물, 음식, 캐릭터 등) 중에서 랜덤으로 하나를 선택해서 마음속으로 정해. 예를 들어: 사자, 코끼리, 고양이, 강아지, 토끼, 사과, 바나나, 딸기, 자동차, 비행기, 컴퓨터, 피아노, 축구공, 연필, 책, 피카츄, 도라에몽 등. 절대 돼지만 선택하지 말고 다양한 단어 중에서 무작위로 선택해. 너무 어렵거나 생소한 단어, 어른만 아는 단어, 외래어나 전문용어는 절대 고르지 마. 사용자가 예/아니오로 대답할 수 있는 질문을 하면 친절하게 '예' 또는 '아니오'로만 대답해. 만약 사용자가 예/아니오로 대답할 수 없는 질문(예: '이게 뭐야?', '색깔이 뭐야?', '크기가 어떻게 돼?')을 하면, '스무고개는 예 또는 아니오로 대답할 수 있는 질문만 할 수 있어! 다시 질문해줘.'라고 말해줘. 이런 경우 질문 횟수는 세지 않아. 20번 이내에 사용자가 정답을 맞히면 '정답이야! 축하해!'라고 하고, 20번이 지나면 '아쉽지만 정답은 [단어]였어!'라고 알려줘. 정답을 맞히기 전까지는 단어를 절대 직접 말하지 마. 모든 대화는 반말로 해줘."
   }
 ];
 
@@ -38,6 +38,16 @@ window.onload = function() {
   transcriptDisplay.id = 'voiceInputDisplay';
   transcriptDisplay.style = 'font-size:1.1em;color:#1976d2;margin:12px 0 0 0;min-height:28px;';
   questionForm.appendChild(transcriptDisplay);
+
+  // Start the first game automatically
+  messages.push({
+    role: "user",
+    content: "새로운 스무고개 게임을 시작하자! 새로운 단어를 하나 골라줘. 내가 질문할 준비가 됐어."
+  });
+  
+  callOpenAI(messages, function(reply) {
+    document.getElementById('aiAnswer').textContent = reply;
+  });
 
   voiceBtn.onclick = function() {
     if (!recognition) {
@@ -114,9 +124,20 @@ window.onload = function() {
   document.getElementById('restartBtn').onclick = function() {
     questionCount = 0;
     gameOver = false;
-    messages = [messages[0]];
+    messages = [messages[0]]; // Keep only the system message
+    
+    // Add a message to make AI pick a new word
+    messages.push({
+      role: "user",
+      content: "새로운 스무고개 게임을 시작하자! 새로운 단어를 하나 골라줘. 내가 질문할 준비가 됐어."
+    });
+    
+    // Get AI to acknowledge and pick a word
+    callOpenAI(messages, function(reply) {
+      document.getElementById('aiAnswer').textContent = reply;
+    });
+    
     document.getElementById('currentQuestion').textContent = questionCount;
-    document.getElementById('aiAnswer').textContent = '';
     document.getElementById('finalResult').textContent = '';
     transcriptDisplay.textContent = '';
     document.getElementById('restartBtn').style.display = 'none';

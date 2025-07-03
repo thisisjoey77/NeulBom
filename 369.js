@@ -101,48 +101,35 @@ function nextTurn() {
 }
 
 function listenForUserInputs() {
-  showLoading('플레이어 입력 대기 중...');
-  let transcript = '';
-  let inputReceived = false;
-  let lastSpeechTime = Date.now();
-  recognition.onresult = (event) => {
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal && !inputReceived) {
-        transcript += event.results[i][0].transcript;
-        lastSpeechTime = Date.now();
-        inputReceived = true;
-        hideLoading();
-        showLoading('음성 인식 중...');
+  if (isListening) {
+    return; // Already listening
+  }
+  
+  showLoading('플레이어 입력 대기 중... (말해주세요)');
+  
+  try {
+    recognition.start();
+    isListening = true;
+    
+    // Set a timeout to force end after some time
+    if (inputTimeout) clearTimeout(inputTimeout);
+    inputTimeout = setTimeout(() => {
+      if (isListening) {
         recognition.stop();
-        setTimeout(() => {
-          hideLoading();
-          handleUserInput(transcript.trim());
-        }, 500);
-        return;
+        hideLoading();
+        if (userInputs.length === 0) {
+          aiResponseSpan.textContent = '입력이 없어서 게임을 종료합니다.';
+          gameOver = true;
+        } else {
+          processUserInputs();
+        }
       }
-    }
-  };
-  recognition.onend = () => {
-    if (!inputReceived) {
-      hideLoading();
-      processUserInputs();
-    }
-  };
-  recognition.onerror = (e) => {
+    }, 10000); // 10 seconds total timeout
+  } catch (error) {
+    console.error('Failed to start speech recognition:', error);
     hideLoading();
-    console.log('Speech recognition error:', e);
-    listenForUserInputs();
-  };
-  recognition.start();
-  // Set a timeout to force end after WINDOW ms since last input
-  const WINDOW = 3000; // 3 seconds
-  if (inputTimeout) clearTimeout(inputTimeout);
-  inputTimeout = setTimeout(() => {
-    if (!inputReceived) {
-      hideLoading();
-      recognition.stop();
-    }
-  }, WINDOW);
+    aiResponseSpan.textContent = '음성 인식을 시작할 수 없습니다. 브라우저가 마이크를 지원하는지 확인해주세요.';
+  }
 }
 
 function startUserInputPhase() {
@@ -189,19 +176,40 @@ function splitKoreanNumbers(input) {
 }
 
 function handleUserInput(transcript) {
-  if (gameOver) return;
+  if (gameOver || awaitingAITurn) return;
+  
   console.log('Voice input received:', transcript);
+  hideLoading();
+  
   const parts = splitKoreanNumbers(transcript);
   for (let part of parts) {
     userInputs.push(part);
   }
+  
   if (inputTimeout) clearTimeout(inputTimeout);
-  if (userInputs.length < playerCount) {
-    // Not enough inputs yet, restart listening
-    listenForUserInputs();
-  } else {
-    // Got enough inputs, process immediately
+  
+  if (userInputs.length >= playerCount) {
+    // Got enough inputs, stop listening and process
+    if (isListening) {
+      recognition.stop();
+    }
     processUserInputs();
+  } else {
+    // Still need more inputs, show progress
+    showLoading(`입력 받음: ${userInputs.length}/${playerCount} - 계속 말해주세요`);
+    
+    // Give a bit more time for remaining inputs
+    inputTimeout = setTimeout(() => {
+      if (isListening) {
+        recognition.stop();
+      }
+      if (userInputs.length > 0) {
+        processUserInputs();
+      } else {
+        aiResponseSpan.textContent = '입력이 없어서 게임을 종료합니다.';
+        gameOver = true;
+      }
+    }, 5000); // 5 more seconds
   }
 }
 
@@ -305,30 +313,103 @@ function aiTurn() {
 // Speech recognition setup
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = 'ko-KR';
-recognition.interimResults = false;
-recognition.continuous = false;
+recognition.interimResults = true; // Enable interim results for better feedback
+recognition.continuous = true; // Keep listening continuously
+recognition.maxAlternatives = 3; // Get multiple alternatives
+
+let isListening = false;
+let recognitionTimeout = null;
+
+recognition.onstart = () => {
+  console.log('Speech recognition started');
+  isListening = true;
+};
 
 recognition.onresult = (event) => {
+  let interimTranscript = '';
+  let finalTranscript = '';
+  
   for (let i = event.resultIndex; i < event.results.length; ++i) {
+    const transcript = event.results[i][0].transcript;
     if (event.results[i].isFinal) {
-      const transcript = event.results[i][0].transcript;
-      if (inputTextSpan) inputTextSpan.textContent = transcript;
-      handleUserInput(transcript);
+      finalTranscript += transcript;
+    } else {
+      interimTranscript += transcript;
     }
   }
+  
+  // Show interim results for better user feedback
+  if (inputTextSpan) {
+    inputTextSpan.textContent = finalTranscript || interimTranscript;
+  }
+  
+  // Process final results
+  if (finalTranscript) {
+    console.log('Final transcript:', finalTranscript);
+    handleUserInput(finalTranscript);
+  }
+  
+  // Reset timeout when we get speech
+  if (recognitionTimeout) {
+    clearTimeout(recognitionTimeout);
+  }
+  recognitionTimeout = setTimeout(() => {
+    if (isListening) {
+      recognition.stop();
+    }
+  }, 2000); // Stop after 2 seconds of silence
 };
 
 recognition.onend = () => {
+  console.log('Speech recognition ended');
+  isListening = false;
+  if (recognitionTimeout) {
+    clearTimeout(recognitionTimeout);
+  }
   // Only restart if we are still waiting for user input (not during AI turn)
   if (!awaitingAITurn && playerCount > 0 && !gameOver) {
-    listenForUserInputs();
+    setTimeout(() => {
+      if (!isListening) {
+        listenForUserInputs();
+      }
+    }, 500);
   }
 };
 
 recognition.onerror = (e) => {
-  console.log('Speech recognition error:', e);
-  // Optionally, restart listening
-  listenForUserInputs();
+  console.log('Speech recognition error:', e.error);
+  isListening = false;
+  if (recognitionTimeout) {
+    clearTimeout(recognitionTimeout);
+  }
+  
+  // Handle different error types
+  switch (e.error) {
+    case 'no-speech':
+      console.log('No speech detected');
+      break;
+    case 'audio-capture':
+      console.log('Audio capture failed');
+      break;
+    case 'not-allowed':
+      console.log('Microphone access denied');
+      aiResponseSpan.textContent = '마이크 접근이 거부되었습니다. 브라우저 설정에서 마이크를 허용해주세요.';
+      return;
+    case 'network':
+      console.log('Network error');
+      break;
+    default:
+      console.log('Other error:', e.error);
+  }
+  
+  // Restart listening after error (except for permission errors)
+  if (e.error !== 'not-allowed' && !awaitingAITurn && playerCount > 0 && !gameOver) {
+    setTimeout(() => {
+      if (!isListening) {
+        listenForUserInputs();
+      }
+    }, 1000);
+  }
 };
 
 // Loading overlay helpers
