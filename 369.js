@@ -45,9 +45,10 @@ if ('speechSynthesis' in window) {
 }
 
 // --- Helper function for AI speech ---
-function speakAiResponse(text) {
+function speakAiResponse(text, onFinished = null) {
   if (!('speechSynthesis' in window)) {
     console.warn("Speech Synthesis API not supported.");
+    if (onFinished) onFinished();
     return;
   }
 
@@ -71,6 +72,17 @@ function speakAiResponse(text) {
       utterance.voice = koreanVoice;
     }
   }
+
+  // Add callback when speech finishes
+  utterance.onend = () => {
+    console.log('AI speech finished');
+    if (onFinished) onFinished();
+  };
+
+  utterance.onerror = () => {
+    console.log('AI speech error');
+    if (onFinished) onFinished();
+  };
 
   speechSynthesis.speak(utterance);
 }
@@ -136,11 +148,11 @@ function listenForUserInputs() {
 }
 
 function startUserInputPhase() {
-  if (gameOver || awaitingUserInput) return;
+  if (gameOver || awaitingUserInput || awaitingAITurn) return;
   if (playerCount === 0) {
     aiResponseSpan.textContent = '카메라에 사람이 감지될 때까지 대기 중...';
     aiResponseSpan.style.color = '';
-    setTimeout(startUserInputPhase, 1000);
+    setTimeout(startUserInputPhase, 2000); // Longer delay to avoid rapid polling
     return;
   }
   let message;
@@ -155,7 +167,13 @@ function startUserInputPhase() {
   userInputs = [];
   awaitingUserInput = true; // Set this flag before starting to listen
   if (inputTimeout) clearTimeout(inputTimeout);
-  listenForUserInputs();
+  
+  // Add a small delay before starting to listen to ensure UI updates
+  setTimeout(() => {
+    if (awaitingUserInput && !gameOver) {
+      listenForUserInputs();
+    }
+  }, 500);
 }
 
 window.onload = () => {
@@ -295,11 +313,14 @@ function aiTurn() {
   let say = (currentNumber % 3 === 0) ? '코알라' : currentNumber.toString();
   aiResponseSpan.textContent = `AI: ${say}`;
   aiResponseSpan.style.color = '';
-  speakAiResponse(say); // Use the new helper function for AI's turn
-  currentNumber++;
-  awaitingAITurn = false;
-  isFirstRound = false; // No longer first round after AI takes a turn
-  setTimeout(startUserInputPhase, 1000);
+  
+  // Use the callback to wait for AI speech to finish before starting next turn
+  speakAiResponse(say, () => {
+    currentNumber++;
+    awaitingAITurn = false;
+    isFirstRound = false; // No longer first round after AI takes a turn
+    setTimeout(startUserInputPhase, 500); // Small delay after AI finishes speaking
+  });
 }
 
 // Speech recognition setup
