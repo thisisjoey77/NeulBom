@@ -122,9 +122,10 @@ recognition.onresult = async (event) => {
         onLetsPlay369Prompt();
     }
 
+    let reply = '';
     try {
         const data = await callOpenAI(messages);
-        let reply = data.choices[0].message.content.trim();
+        reply = data.choices[0].message.content.trim();
 
         // --- Regex to filter out emojis ---
         // This regex matches a wide range of Unicode emoji characters
@@ -139,6 +140,7 @@ recognition.onresult = async (event) => {
     } catch (error) {
         console.error('Error:', error);
         aiResponseSpan.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+        reply = '오류가 발생했습니다. 다시 시도해주세요.';
     }
 
     const utterance = new SpeechSynthesisUtterance(reply);
