@@ -177,8 +177,20 @@
             countdown.style.display = 'none';
             gameState.phase = 'jumping';
             gameState.phaseStartTime = now;
+            
+            // Dynamic backend URL
+            const getBackendUrl = () => {
+              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:5000';
+              }
+              if (window.location.protocol === 'https:') {
+                return 'https://54.180.16.112:5000';
+              }
+              return 'http://54.180.16.112:5000';
+            };
+            
             // Reset jump count for the server
-            fetch('http://54.180.16.112:5000/reset_jump_count', {
+            fetch(getBackendUrl() + '/reset_jump_count', {
               method: 'POST'
             });
           }
@@ -190,7 +202,7 @@
           result.style.display = 'none';
           
           // Poll for jump count from server
-          fetch('http://54.180.16.112:5000/jump_count')
+          fetch(getBackendUrl() + '/jump_count')
             .then(res => res.json())
             .then(data => {
               gameState.jumps = data.count;

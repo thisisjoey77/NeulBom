@@ -49,15 +49,29 @@
   </script>
   <script src="script.js"></script>
   <script>
-    // Allow runtime override of BACKEND_URL (for Vercel env var injection)
-    window.BACKEND_URL = window.BACKEND_URL || 'http://54.180.16.112:5000/process_frame';
+    // Dynamic backend URL based on environment
+    const getBackendUrl = () => {
+        // If running on localhost, use HTTP
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:5000';
+        }
+        // If running on HTTPS (production), use HTTPS backend
+        if (window.location.protocol === 'https:') {
+            return 'https://54.180.16.112:5000';
+        }
+        // Default to HTTP
+        return 'http://54.180.16.112:5000';
+    };
+    
+    window.BACKEND_URL = getBackendUrl() + '/process_frame';
+    console.log('Backend URL:', window.BACKEND_URL);
   </script>
   <script>
     const video = document.getElementById('cam');
     const cameraStatus = document.getElementById('cameraStatus');
     const detectionResults = document.getElementById('detectionResults');
     let stream = null;
-    const BACKEND_URL = window.BACKEND_URL || 'http://54.180.16.112:5000/process_frame';
+    const BACKEND_URL = window.BACKEND_URL;
     
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       cameraStatus.textContent = 'Camera status: Requesting permission...';
@@ -85,7 +99,7 @@
     function startFrameUpload() {
       // Instead of uploading frames, use the people_count endpoint which uses the server's camera
       setInterval(() => {
-        fetch('http://54.180.16.112:5000/people_count')
+        fetch(getBackendUrl() + '/people_count')
           .then(res => res.json())
           .then(data => {
             if (data.people !== undefined) {

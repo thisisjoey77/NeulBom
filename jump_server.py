@@ -138,10 +138,23 @@ def video_feed():
         last_jump_time = None
         can_jump = True
         cap = cv2.VideoCapture(0)
+        
+        # Check if camera is accessible
+        if not cap.isOpened():
+            print("Warning: Cannot access camera on server")
+            # Return a simple error frame
+            error_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            cv2.putText(error_frame, 'Camera not available on server', (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            _, jpeg = cv2.imencode('.jpg', error_frame)
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+            return
+        
         try:
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
+                    print("Warning: Failed to read from camera")
                     break
                 results = model(frame)
                 boxes = results[0].boxes.xyxy.cpu().numpy() if results[0].boxes is not None else []
@@ -523,4 +536,14 @@ def test_yolo():
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))  # Use PORT from environment if available
-    app.run(host='0.0.0.0', port=port, debug=False)  # debug=False for production
+    
+    # Check if we should use HTTPS
+    use_https = os.environ.get('USE_HTTPS', 'false').lower() == 'true'
+    
+    if use_https:
+        # For HTTPS, we need SSL context
+        # You can generate self-signed certificates or use proper SSL certificates
+        ssl_context = 'adhoc'  # This creates a temporary self-signed certificate
+        app.run(host='0.0.0.0', port=port, debug=False, ssl_context=ssl_context)
+    else:
+        app.run(host='0.0.0.0', port=port, debug=False)  # debug=False for production

@@ -18,7 +18,17 @@
   <script>
     const video = document.getElementById('cam');
     let stream = null;
-    const BACKEND_URL = 'http://54.180.16.112:5000/process_frame';
+    // Dynamic backend URL
+    const getBackendUrl = () => {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000';
+      }
+      if (window.location.protocol === 'https:') {
+        return 'https://54.180.16.112:5000';
+      }
+      return 'http://54.180.16.112:5000';
+    };
+    const BACKEND_URL = getBackendUrl() + '/process_frame';
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(s => {
