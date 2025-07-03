@@ -9,7 +9,7 @@
  */
 async function callOpenAI(messages, model = 'gpt-3.5-turbo') {
   try {
-    const response = await fetch('http://localhost:5000/api/openai', {
+    const response = await fetch('https://54.180.16.112:5000//api/openai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
