@@ -136,7 +136,7 @@ function onLetsPlay369Prompt() {
 }
 
 function pollPeopleCount() {
-  fetch('http://54.180.16.112:5000/people_count')
+  fetch('https://54.180.16.112:5000/people_count')
     .then(res => res.json())
     .then(data => {
       playerCount = data.people;
