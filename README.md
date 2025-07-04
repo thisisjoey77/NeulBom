@@ -15,5 +15,5 @@ Temp Link: http://neuldom.thecoala.io/
 
 ### 제작 및 기흭
 * 코드 개발: 김조이
-* 교육 지도: 임태현
+* 교육 기획: 강주희
 
