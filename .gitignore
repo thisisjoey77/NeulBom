@@ -5,19 +5,11 @@ build/
 # Node modules
 node_modules/
 
-# Large model files
-*.pt
-yolov8n-pose.pt
-
 # Large media files
 *.mp4
 COALA FILE.mp4
 
-# Large images (keep smaller ones if needed for the app)
-images/코끼리.png
-images/강아지.png
-images/얼룩말.png
-images/닭.png
+# Note: YOLO model (yolov8n-pose.pt) and images/ folder are now included
 
 # OS generated files
 .DS_Store
