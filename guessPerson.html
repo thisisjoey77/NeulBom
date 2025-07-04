@@ -1,0 +1,30 @@
+<!-- guessPerson.html - 인물 맞히기 게임 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>인물 맞히기 (Guess the Person)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <button onclick="window.location.href='index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+    <div class="gp-container">
+      <div class="gp-title">인물 맞히기 (Guess the Person)</div>
+      <div id="gpInstructions">
+        AI가 생각한 인물을 6번의 질문과 추측으로 맞혀보세요!<br>
+        질문은 무엇이든 괜찮아요. 각 질문 후 AI가 짧게 대답하고, 아직 밝혀지지지 않은 새로운 힌트를 줍니다.<br>
+        언제든 정답을 추측할 수 있습니다.
+      </div>
+      <div id="gpQuestionCount">질문/추측: <span id="gpCurrentQuestion">0</span>/6</div>
+      <form id="gpQuestionForm" autocomplete="off">
+        <input type="text" id="gpUserQuestion" placeholder="질문을 입력하세요" required>
+        <button type="submit">질문하기</button>
+      </form>
+      <div id="gpAiAnswer"></div>
+      <div id="gpHint"></div>
+      <div id="gpFinalResult"></div>
+      <button id="gpRestartBtn" style="display:none;">다시 시작</button>
+    </div>
+    <script src="guessPerson.js"></script>
+</body>
+</html>

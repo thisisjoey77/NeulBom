@@ -1,0 +1,198 @@
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(135deg, #181c22 0%, #23272f 100%);
+  color: #e0e6ed;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+.container {
+  max-width: 700px;
+  margin: 40px auto;
+  background: rgba(30, 34, 40, 0.98);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  padding: 40px 32px 32px 32px;
+  text-align: center;
+  border: 1.5px solid #232a36;
+}
+h2, h3 {
+  color: #7ecbff;
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+button {
+  background: #2196f3;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 36px;
+  font-size: 1.15em;
+  margin: 14px 8px 14px 0; /* Add right margin for horizontal spacing */
+  cursor: pointer;
+  box-shadow: 0 0 6px 1px #2196f3, 0 2px 8px rgba(0,0,0,0.12); /* Less glow */
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  outline: none;
+  display: inline-block;
+}
+button:last-child {
+  margin-right: 0;
+}
+button:hover, button:focus {
+  background: #42a5f5;
+  box-shadow: 0 0 12px 2px #42a5f5, 0 4px 16px rgba(0,0,0,0.16); /* Less glow on hover */
+  transform: translateY(-2px) scale(1.03);
+}
+#playerCountDisplay {
+  font-weight: bold;
+  color: #ff7675;
+}
+#aiResponse {
+  font-size: 1.1em;
+  margin-top: 16px;
+  color: #ffe082;
+}
+img {
+  border: 2px solid #2196f3;
+  border-radius: 14px;
+  margin-top: 18px;
+  box-shadow: 0 2px 16px rgba(33,150,243,0.12);
+}
+.gp-container {
+  max-width: 700px;
+  min-width: 340px;
+  margin: 48px auto;
+  background: rgba(30, 34, 40, 0.98);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  padding: 48px 48px 48px 48px;
+  text-align: center;
+  border: 1.5px solid #232a36;
+  min-height: 540px;
+}
+.gp-title {
+  color: #7ecbff;
+  font-size: 2.1em;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+#gpInstructions {
+  color: #b2e0ff;
+  font-size: 1.08em;
+  margin-bottom: 18px;
+}
+#gpQuestionCount {
+  font-size: 1.1em;
+  color: #ffe082;
+  margin-bottom: 12px;
+}
+#gpAiAnswer {
+  margin: 18px 0 8px 0;
+  font-size: 1.15em;
+  color: #ffe082;
+  min-height: 32px;
+}
+#gpHint {
+  font-size: 1.08em;
+  color: #b2ffb2;
+  margin-bottom: 10px;
+  min-height: 24px;
+}
+#gpFinalResult {
+  font-size: 1.18em;
+  color: #ffb3b3;
+  margin: 10px 0 18px 0;
+  min-height: 28px;
+}
+#gpUserQuestion {
+  width: 80%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #2196f3;
+  font-size: 1.08em;
+  margin-bottom: 8px;
+  background: #23272f;
+  color: #e0e6ed;
+  outline: none;
+  transition: border 0.2s;
+}
+#gpUserQuestion:focus {
+  border: 2px solid #7ecbff;
+}
+#gpRestartBtn {
+  margin-top: 10px;
+  padding: 10px 32px;
+  font-size: 1.08em;
+}
+.twentyq-container {
+  max-width: 700px;
+  min-width: 340px;
+  margin: 48px auto;
+  background: rgba(30, 34, 40, 0.98);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  padding: 48px 48px 48px 48px;
+  text-align: center;
+  border: 1.5px solid #232a36;
+  min-height: 540px;
+}
+.twentyq-title {
+  color: #7ecbff;
+  font-size: 2.1em;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+#gameInstructions {
+  color: #b2e0ff;
+  font-size: 1.08em;
+  margin-bottom: 18px;
+}
+#questionCount {
+  font-size: 1.1em;
+  color: #ffe082;
+  margin-bottom: 12px;
+}
+#aiAnswer {
+  margin: 18px 0 8px 0;
+  font-size: 1.15em;
+  color: #ffe082;
+  min-height: 32px;
+}
+#finalResult {
+  font-size: 1.18em;
+  color: #ffb3b3;
+  margin: 10px 0 18px 0;
+  min-height: 28px;
+}
+#userQuestion {
+  width: 80%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #2196f3;
+  font-size: 1.08em;
+  margin-bottom: 8px;
+  background: #23272f;
+  color: #e0e6ed;
+  outline: none;
+  transition: border 0.2s;
+}
+#userQuestion:focus {
+  border: 2px solid #7ecbff;
+}
+#restartBtn {
+  margin-top: 10px;
+  padding: 10px 32px;
+  font-size: 1.08em;
+}
+.result {
+  font-size: 1.2em;
+  margin: 16px 0;
+  color: #222;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .gp-container { padding: 18px 4vw; }
+  #gpUserQuestion { width: 98%; }
+  .twentyq-container { padding: 18px 4vw; }
+  #userQuestion { width: 98%; }
+}

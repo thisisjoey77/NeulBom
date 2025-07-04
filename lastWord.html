@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Last Word Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button onclick="window.location.href='index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+  <div class="container">
+    <h2>끝말잇기 게임</h2>
+    <h3>코알라와 함께 끝말잇기 게임을 하세요!</h3>
+    <img id="cam" src="http://localhost:5001/video-feed-lastWord" width="640" height="480">
+    <button id="kkeutmalBtn">끝말잇기 시작</button>
+    <div id="kkeutmalStatus" style="margin-top: 16px; font-size: 1.2em; color: #333;">플레이어 수를 감지 중...</div>
+    <div id="wordHistory" style="margin-top: 10px; font-size: 1em; color: #666;"></div>
+  </div>
+  <script src="lastWord.js"></script>
+</body>
+</html>

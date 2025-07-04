@@ -1,0 +1,101 @@
+{
+  "author": "Joy Kim <thisisjoey77@gmail.com>",
+  "name": "neulbom",
+  "version": "1.0.0",
+  "description": "Neulbom Game Electron App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --mac --win --linux"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.yourdomain.coala",
+    "files": [
+      "**/*",
+      "dist/jump_server",
+      "yolov8n-pose.pt",
+      "*.html",
+      "*.css",
+      "*.js",
+      "*.png",
+      "images/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/jump_server",
+        "to": "jump_server"
+      },
+      {
+        "from": "yolov8n-pose.pt",
+        "to": "yolov8n-pose.pt"
+      },
+      {
+        "from": ".env",
+        "to": ".env"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "identity": null,
+      "icon": "coalanew.png",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "This app needs microphone access for speech recognition games and voice commands.",
+        "NSCameraUsageDescription": "This app uses your camera for motion detection games.",
+        "LSUIElement": false
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "coalanew.png",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Coala Neulbom"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ],
+      "category": "Game",
+      "icon": "coalanew.png"
+    }
+  },
+  "dependencies": {
+    "@google-cloud/speech": "^7.1.0",
+    "dotenv": "^16.6.1",
+    "form-data": "^4.0.3",
+    "node-fetch": "^2.7.0"
+  }
+}
