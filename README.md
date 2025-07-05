@@ -6,6 +6,8 @@
 ![HTML](https://img.shields.io/badge/HTML-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-5a32a3?style=for-the-badge&logo=python&logoColor=white)
+
 
 서울특별시 늘봄교육지원 센터 AI 활용 교육 웹 프로젝트
 
