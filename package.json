@@ -1,0 +1,137 @@
+{
+  "author": "Joy Kim <thisisjoey77@gmail.com>",
+  "name": "neulbom",
+  "version": "1.0.0",
+  "description": "Neulbom Game Electron App",
+  "main": "main.js",
+  "scripts": {
+    "start": "npm run prebuild && electron .",
+    "start:dev": "electron .",
+    "prebuild": "python3 -m PyInstaller --onefile --name jump_server jump_server.py",
+    "build": "npm run prebuild && electron-builder",
+    "build:mac": "npm run prebuild && electron-builder --mac",
+    "build:win": "npm run prebuild && electron-builder --win",
+    "build:linux": "npm run prebuild && electron-builder --linux",
+    "build:all": "npm run prebuild && electron-builder --mac --win --linux",
+    "build:mac-signed": "npm run prebuild && CSC_LINK=$APPLE_CERTIFICATE CSC_KEY_PASSWORD=$APPLE_CERTIFICATE_PASSWORD APPLE_ID=$APPLE_ID APPLE_PASSWORD=$APPLE_PASSWORD APPLE_TEAM_ID=$APPLE_TEAM_ID electron-builder --mac",
+    "build:release": "npm run prebuild && CSC_LINK=$APPLE_CERTIFICATE CSC_KEY_PASSWORD=$APPLE_CERTIFICATE_PASSWORD APPLE_ID=$APPLE_ID APPLE_PASSWORD=$APPLE_PASSWORD APPLE_TEAM_ID=$APPLE_TEAM_ID electron-builder --mac --win --publish never"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^2.5.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.jaewookkim.neulbom",
+    "productName": "Neulbom",
+    "asar": false,
+    "files": [
+      "main.js",
+      "preload.js",
+      "speech_server.js",
+      ".env",
+      "index.html",
+      "shared-mic.js",
+      "script.js",
+      "styles/**/*",
+      "games/**/*",
+      "node_modules/node-fetch/**/*",
+      "node_modules/form-data/**/*",
+      "node_modules/dotenv/**/*",
+      "!**/*.pt",
+      "!dist/**/*",
+      "!build/**/*",
+      "!scripts/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "yolov8n-pose.pt",
+        "to": "yolov8n-pose.pt"
+      },
+      {
+        "from": "dist/jump_server",
+        "to": "jump_server"
+      }
+    ],
+    
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "coalanew.png",
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "identity": "JAE WOOK KIM (MZ4A8222G6)",
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "This app needs microphone access for speech recognition games and voice commands.",
+        "NSCameraUsageDescription": "This app uses your camera for motion detection games.",
+        "LSUIElement": false
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Neulbom",
+      "displayLanguageSelector": false,
+      "uninstallDisplayName": "Neulbom - Educational Games",
+      "license": null,
+      "allowElevation": true,
+      "runAfterFinish": true
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Game",
+      "icon": "coalanew.png"
+    }
+  },
+  "dependencies": {
+    "@google-cloud/speech": "^7.1.0",
+    "dotenv": "^16.6.1",
+    "form-data": "^4.0.3",
+    "node-fetch": "^2.7.0"
+  }
+}
