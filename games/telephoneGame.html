@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Telephone Game</title>
+  <link rel="stylesheet" href="../styles/style.css">
+  <script src="telephoneGame.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #1a1a1a; color: #ffffff; }
+    .container { max-width: 480px; margin: 40px auto; background: #2d2d2d; border-radius: 18px; box-shadow: 0 2px 16px rgba(0,0,0,0.30); padding: 32px 24px; text-align: center; }
+    .prompt { font-size: 2em; font-weight: bold; color: #64b5f6; margin: 24px 0 16px 0; }
+    .result { font-size: 1.2em; margin: 16px 0; color: #ffffff; }
+    button { font-size: 1.1em; padding: 6px 18px; border-radius: 6px; background: #1976d2; color: #fff; border: none; margin: 8px; }
+    button:active { background: #125ea2; }
+    #voiceInputDisplay { font-size: 1.1em; color: #64b5f6; margin: 12px 0 0 0; min-height: 28px; }
+    label { cursor: pointer; color: #ffffff; }
+    input[type="checkbox"] { cursor: pointer; }
+    h2 { color: #ffffff; }
+  </style>
+  <script src="../shared-mic.js"></script>
+</head>
+<body>
+  <button onclick="window.location.href='../index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+  <div class="container">
+    <h2>Telephone Game</h2>
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <input type="checkbox" id="oppositeMode" style="transform: scale(1.2);">
+        반대모드 (Opposite Mode)
+      </label>
+    </div>
+    <div id="promptDisplay" class="prompt" style="display:none;"></div>
+    <button id="showPromptBtn">Show</button>
+    <div id="voiceInputDisplay">M 키를 눌러 답변하세요</div>
+    <div class="result" id="resultDisplay"></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!-- twentyQ.html - 스무고개 (20 Questions) Game -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>스무고개 (20 Questions) Game</title>
+    <link rel="stylesheet" href="../styles/style.css">
+  <script src="../shared-mic.js"></script>
+</head>
+<body>
+    <button onclick="window.location.href='../index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+    <div class="twentyq-container">
+      <div class="twentyq-title">스무고개 (20 Questions)</div>
+      <div id="gameInstructions">
+        AI가 생각한 단어를 20번 이내에 질문을 통해 맞혀보세요!<br>
+        예/아니오로 대답할 수 있는 질문만 입력하세요.<br>
+        <strong>예시:</strong> "이것은 동물인가요?", "이것은 먹을 수 있나요?"
+      </div>
+      <div id="questionCount">질문: <span id="currentQuestion">0</span>/20</div>
+      <form id="questionForm" autocomplete="off">
+        <input type="text" id="userQuestion" placeholder="질문을 입력하세요" required>
+      </form>
+      <div id="aiAnswer"></div>
+      <div id="finalResult"></div>
+      <button id="restartBtn" style="display:none;">다시 시작</button>
+    </div>
+    <script src="twentyQ.js"></script>
+</body>
+</html>

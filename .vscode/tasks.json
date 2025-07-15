@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Run jump_server.py (Flask backend)",
+			"command": "python jump_server.py",
+			"group": "build",
+			"isBackground": true
+		}
+	]
+}

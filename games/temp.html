@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jump Game - Coala Neulbom</title>
+  <link rel="stylesheet" href="../styles/style.css">
+</head>
+<body>
+  <button onclick="window.location.href='../index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+  
+  <div class="container">
+    <h2>🦘 Jump Game with Coala! 🐨</h2>
+    
+    <!-- Game Status -->
+    <div style="margin: 20px 0; text-align: center;">
+      <div style="background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: #1976d2;">Jump Count: <span id="jumpCount">0</span></h3>
+        <p style="margin: 5px 0; color: #666;">People Detected: <span id="peopleCount">0</span></p>
+      </div>
+      
+      <button id="resetBtn" style="padding: 10px 20px; font-size: 16px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">Reset Count</button>
+    </div>
+
+    <!-- Instructions -->
+    <div style="background: #f0f4c3; padding: 15px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #827717;">
+      <h4 style="margin-top: 0; color: #827717;">🎯 How to Play:</h4>
+      <p style="margin: 5px 0;">1. Stand in front of the camera</p>
+      <p style="margin: 5px 0;">2. Jump up and down to score points!</p>
+      <p style="margin: 5px 0;">3. The game detects your nose movement to count jumps</p>
+      <p style="margin: 5px 0;">4. Try to beat your high score!</p>
+    </div>
+
+    <!-- Camera Feed -->
+    <div style="text-align: center; margin: 20px 0;">
+      <img id="cam" src="http://localhost:5001/video_feed" width="640" height="480" 
+           style="border: 3px solid #4CAF50; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"
+           onerror="handleCameraError()" onload="handleCameraLoad()">
+      <div id="cameraStatus" style="margin-top: 10px; color: #666;">Connecting to camera...</div>
+    </div>
+
+  </div>
+  
+  <script>
+    let jumpCount = 0;
+    let peopleCount = 0;
+    
+    // Update jump count display
+    function updateJumpCount() {
+      fetch('http://localhost:5001/jump_count')
+        .then(response => response.json())
+        .then(data => {
+          jumpCount = data.count;
+          document.getElementById('jumpCount').textContent = jumpCount;
+        })
+        .catch(error => {
+          console.error('Error fetching jump count:', error);
+        });
+    }
+    
+    // Update people count display
+    function updatePeopleCount() {
+      fetch('http://localhost:5001/people_count')
+        .then(response => response.json())
+        .then(data => {
+          peopleCount = data.people;
+          document.getElementById('peopleCount').textContent = peopleCount;
+        })
+        .catch(error => {
+          console.error('Error fetching people count:', error);
+        });
+    }
+    
+    // Reset jump count
+    document.getElementById('resetBtn').addEventListener('click', function() {
+      fetch('http://localhost:5001/reset_jump_count', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Jump count reset:', data);
+          updateJumpCount();
+        })
+        .catch(error => {
+          console.error('Error resetting jump count:', error);
+        });
+    });
+    
+    // Handle camera errors
+    function handleCameraError() {
+      document.getElementById('cameraStatus').innerHTML = 
+        '<span style="color: red;">❌ Camera connection failed. Make sure the jump server is running on port 5001.</span>';
+    }
+    
+    // Handle camera load
+    function handleCameraLoad() {
+      document.getElementById('cameraStatus').innerHTML = 
+        '<span style="color: green;">✅ Camera connected successfully!</span>';
+    }
+    
+    // Update counts every 1 second
+    setInterval(updateJumpCount, 1000);
+    setInterval(updatePeopleCount, 2000);
+    
+    // Initial load
+    updateJumpCount();
+    updatePeopleCount();
+  </script>
+</body>
+</html>

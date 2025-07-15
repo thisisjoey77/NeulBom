@@ -1,0 +1,34 @@
+<!-- commandAI.html - 코알라 명령어 이동 게임 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>코알라 명령어 이동 (Command AI)</title>
+  <link rel="stylesheet" href="../styles/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script src="commandAI.js"></script>
+</head>
+<body>
+  <button onclick="window.location.href='../index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+  <div class="twentyq-container">
+    <div class="twentyq-title">코알라 명령어 이동</div>
+    <div id="gameInstructions" style="margin-bottom:18px;font-size:1.1em;">
+      <b>음성 명령 예시:</b><br>
+      <span style="color:#1976d2;">앞으로 X번 가</span> 또는 <span style="color:#1976d2;">회전 X번</span> 과 같이 명령을 말해보세요.<br>
+      예시: "앞으로 3번 가", "회전 2번"
+    </div>
+    <div id="p5-holder" style="margin:18px 0; min-height:420px; background:#f5f5f5; border-radius:12px; box-shadow:0 2px 16px rgba(33,150,243,0.08);"></div>
+    
+    <!-- Input form for voice commands -->
+    <form id="cmdForm" style="margin: 15px 0;">
+      <input type="text" id="cmdInput" placeholder="음성으로 명령하세요 (M키 사용)" style="width: 70%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;">
+      <button type="submit" style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px;">실행</button>
+    </form>
+    
+    <div id="cmdResult" style="margin: 10px 0; padding: 8px; background: #f0f8ff; border-radius: 4px; color: #1976d2;"></div>
+    
+    <button id="restartBtn" style="display:none;margin-top:18px;">다시하기</button>
+    <div style="margin-top:10px;font-size:0.95em;color:#888;">※ <b>coalanew.png</b> 파일이 이 폴더에 있어야 코알라가 보입니다.</div>
+  </div>
+</body>
+</html>

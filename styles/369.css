@@ -1,0 +1,66 @@
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(135deg, #181c22 0%, #23272f 100%);
+  color: #e0e6ed;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+.container {
+  max-width: 700px;
+  margin: 40px auto;
+  background: rgba(30, 34, 40, 0.98);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  padding: 40px 32px 32px 32px;
+  text-align: center;
+  border: 1.5px solid #232a36;
+}
+h2, h3 {
+  color: #ffb347;
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+button {
+  background: #2196f3;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 36px;
+  font-size: 1.15em;
+  margin: 14px 8px 14px 0; /* Add right margin for horizontal spacing */
+  cursor: pointer;
+  box-shadow: 0 0 6px 1px #2196f3, 0 2px 8px rgba(0,0,0,0.12); /* Less glow */
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  outline: none;
+  display: inline-block;
+}
+button:last-child {
+  margin-right: 0;
+}
+button:hover, button:focus {
+  background: #42a5f5;
+  box-shadow: 0 0 12px 2px #42a5f5, 0 4px 16px rgba(0,0,0,0.16); /* Less glow on hover */
+  transform: translateY(-2px) scale(1.03);
+}
+#playerCountDisplay {
+  font-weight: bold;
+  color: #ff7675;
+}
+#aiResponse {
+  font-size: 1.1em;
+  margin-top: 16px;
+  color: #ffe082;
+}
+#speechStatus {
+  font-size: 1.0em;
+  margin-top: 8px;
+  color: #81c784;
+  font-style: italic;
+}
+img {
+  border: 2px solid #2196f3;
+  border-radius: 14px;
+  margin-top: 18px;
+  box-shadow: 0 2px 16px rgba(33,150,243,0.12);
+}

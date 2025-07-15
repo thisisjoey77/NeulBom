@@ -1,0 +1,28 @@
+<!-- imageGuess.html - 동물 그림 묘사 맞히기 게임 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>동물 그림 묘사 맞히기 (Image Guess)</title>
+  <link rel="stylesheet" href="../styles/style.css">
+</head>
+<body>
+  <button onclick="window.location.href='../index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+  <div class="twentyq-container">
+    <div class="twentyq-title">동물 그림 묘사 맞히기</div>
+    <div id="gameInstructions">
+      아래 그림을 보고, M키를 눌러 음성으로 설명해 주세요!<br>
+      AI가 여러분의 설명을 듣고 어떤 동물인지 맞혀볼 거예요.<br>
+      (동물 후보: 강아지, 고양이, 나비, 다람쥐, 닭, 돼지, 소, 얼룩말, 코끼리)
+    </div>
+    <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 0.95em; color: #1976d2;">
+      <strong>음성 입력:</strong> M 키를 누르고 있는 동안 그림을 설명하세요. 키를 떼면 음성이 인식됩니다.
+    </div>
+    <div id="imageArea" style="margin:18px 0;"></div>
+    <div id="voiceStatus" style="margin:10px 0;color:#666;font-style:italic;"></div>
+    <div id="aiGuess" style="margin:18px 0 0 0;font-size:1.15em;color:#ffe082;"></div>
+    <button id="restartBtn" style="margin-top:18px;">새로운 동물</button>
+  </div>
+  <script src="imageGuess.js"></script>
+</body>
+</html>

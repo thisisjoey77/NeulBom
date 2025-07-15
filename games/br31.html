@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>베스킨라빈스 31 (BR31) Game (p5.js)</title>
+  <link rel="stylesheet" href="../styles/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+</head>
+<body>
+  <button onclick="window.location.href='../index.html'" style="position:fixed;top:16px;left:16px;z-index:1000;">Back to Main</button>
+  <div id="br31-container" class="br31-container">
+    <img id="jump-cam" src="http://localhost:5001/video-feed-br" alt="Jump Camera" width="480" height="360" style="display:block;margin:0 auto 18px auto;" />
+    <div id="p5-holder"></div>
+    <div id="br31-info" class="br31-info" style="margin-top:16px;color:#222;font-size:20px;text-align:center;">
+      <div id="br31-current" class="br31-current"></div>
+      <div id="br31-player" class="br31-player"></div>
+      <div id="br31-addinfo" class="br31-addinfo"></div>
+      <div id="br31-lastmove" class="br31-lastmove"></div>
+      <div id="br31-winner" class="br31-winner"></div>
+      <div id="br31-jumpstatus" class="br31-jumpstatus"></div>
+    </div>
+  </div>
+  <script src="br31.js"></script>
+</body>
+</html>
