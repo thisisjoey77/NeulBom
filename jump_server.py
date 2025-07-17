@@ -11,6 +11,7 @@ import time
 import random
 from ultralytics import YOLO
 from flask_cors import CORS
+from PIL import Image, ImageSequence
 
 # Configure logging to avoid stdout/stderr issues
 logging.basicConfig(
@@ -50,7 +51,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
 # After you create your Flask app:
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 # Global jump count for BR31
@@ -65,10 +66,187 @@ SYNC_WINDOW = 0.25
 JUMP_THRESHOLD = 50
 JUMP_END_TIMEOUT = 2.5
 
+# Global variables for koala GIF animation
+koala_frames = []
+koala_frame_index = 0
+last_frame_time = 0
+FRAME_DELAY = 0.08  # 80ms between frames for smoother animation
+koala_position_x = 0
+koala_position_y = 0
+koala_animation_offset = 0  # For bouncing effect
+koala_flip_state = False  # False = normal, True = flipped (for left movement)
+person_previous_x = None  # Track person's previous position for movement detection
+
+# Load the koala GIF frames once when the server starts
+def load_koala_frames():
+    global koala_frames
+    try:
+        gif_path = 'KakaoTalk_Photo_2025-07-17-13-41-48.gif'
+        gif = Image.open(gif_path)
+        for frame in ImageSequence.Iterator(gif):
+            # Convert to RGBA and resize to a much bigger size (400x400 pixels)
+            frame = frame.convert('RGBA')
+            frame = frame.resize((400, 400), Image.Resampling.LANCZOS)
+            # Convert to numpy array
+            frame_array = np.array(frame)
+            koala_frames.append(frame_array)
+        logger.info(f"Loaded {len(koala_frames)} koala GIF frames at 400x400 size")
+    except Exception as e:
+        logger.error(f"Failed to load koala GIF: {e}")
+        koala_frames = []
+
+# Call this when the server starts
+load_koala_frames()
+
 
 @app.route('/')
 def index():
-    return send_file('temp.html')
+    return send_file('index.html')
+
+
+@app.route('/video-feed-main')
+def video_feed_main():
+    def gen():
+        global koala_frame_index, last_frame_time
+        model = YOLO('yolov8n-pose.pt')
+        cap = cv2.VideoCapture(0)
+        
+        try:
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                    
+                # Get YOLO detections
+                results = model(frame)
+                boxes = results[0].boxes.xyxy.cpu().numpy() if results[0].boxes is not None else []
+                keypoints = results[0].keypoints.xy.cpu().numpy() if results[0].keypoints is not None else []
+                
+                # Find the person most in front (largest bounding box)
+                largest_area = 0
+                front_person = None
+                front_box = None
+                
+                for i, box in enumerate(boxes):
+                    if i < len(keypoints):
+                        x1, y1, x2, y2 = box
+                        area = (x2 - x1) * (y2 - y1)
+                        if area > largest_area:
+                            largest_area = area
+                            front_person = keypoints[i]
+                            front_box = box
+                
+                # Draw keypoints for all detected people
+                for i, kp in enumerate(keypoints):
+                    for x, y in kp:
+                        cv2.circle(frame, (int(x), int(y)), 3, (0, 255, 0), -1)
+                    if i < len(boxes):
+                        x1, y1, x2, y2 = boxes[i]
+                        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
+                
+                # If we found a person, animate the koala
+                if front_person is not None and len(koala_frames) > 0:
+                    global koala_position_x, koala_position_y, koala_animation_offset, koala_flip_state, person_previous_x
+                    
+                    current_time = time.time()
+                    
+                    # Update animation frame
+                    if current_time - last_frame_time >= FRAME_DELAY:
+                        koala_frame_index = (koala_frame_index + 1) % len(koala_frames)
+                        last_frame_time = current_time
+                    
+                    # Track person's movement for koala flipping
+                    # Use the center of the bounding box as reference
+                    x1, y1, x2, y2 = front_box
+                    person_current_x = (x1 + x2) / 2
+                    
+                    # Determine movement direction and flip koala accordingly
+                    if person_previous_x is not None:
+                        movement_threshold = 20  # Minimum movement to trigger flip
+                        if person_current_x - person_previous_x > movement_threshold:
+                            # Person moved right, koala faces right (normal orientation)
+                            koala_flip_state = False
+                        elif person_previous_x - person_current_x > movement_threshold:
+                            # Person moved left, koala faces left (flipped orientation)
+                            koala_flip_state = True
+                    
+                    # Update previous position for next frame
+                    person_previous_x = person_current_x
+                    
+                    # Create bouncing animation effect
+                    koala_animation_offset = int(10 * np.sin(current_time * 3))  # Bouncing effect
+                    
+                    # Get koala frame
+                    koala = koala_frames[koala_frame_index].copy()
+                    
+                    # YOLO pose keypoints: 0=nose, 1=left_eye, 2=right_eye, 3=left_ear, 4=right_ear
+                    # Extract key facial features
+                    nose = front_person[0] if len(front_person) > 0 else None
+                    left_eye = front_person[1] if len(front_person) > 1 else None
+                    right_eye = front_person[2] if len(front_person) > 2 else None
+                    left_ear = front_person[3] if len(front_person) > 3 else None
+                    right_ear = front_person[4] if len(front_person) > 4 else None
+                    
+                    # Position koala on the right side of the person (consistently)
+                    if right_ear is not None and right_ear[0] > 0 and right_ear[1] > 0:
+                        # Position near right ear
+                        koala_position_x = int(right_ear[0] + 60)  # Offset to the right
+                        koala_position_y = int(right_ear[1] - 80 + koala_animation_offset)  # Above ear with bounce
+                    elif right_eye is not None and right_eye[0] > 0 and right_eye[1] > 0:
+                        # Position near right eye
+                        koala_position_x = int(right_eye[0] + 100)  # Offset to the right
+                        koala_position_y = int(right_eye[1] - 60 + koala_animation_offset)  # Above eye with bounce
+                    else:
+                        # Fallback to right side of face
+                        x1, y1, x2, y2 = front_box
+                        koala_position_x = int(x2 + 50)  # Right side of bounding box
+                        koala_position_y = int(y1 + (y2 - y1) * 0.2 + koala_animation_offset)  # Upper area with bounce
+                    
+                    # Flip koala based on person's movement direction
+                    if koala_flip_state:  # Person moved left, so koala faces left
+                        koala = cv2.flip(koala, 1)
+                    
+                    # Ensure koala stays within frame bounds
+                    koala_position_y = max(0, min(frame.shape[0] - koala.shape[0], koala_position_y))
+                    koala_position_x = max(0, min(frame.shape[1] - koala.shape[1], koala_position_x))
+                    
+                    # Add a semi-transparent background for better visibility
+                    if (koala_position_y + koala.shape[0] <= frame.shape[0] and 
+                        koala_position_x + koala.shape[1] <= frame.shape[1]):
+                        
+                        # Extract the region of interest from the frame
+                        roi = frame[koala_position_y:koala_position_y + koala.shape[0], 
+                                  koala_position_x:koala_position_x + koala.shape[1]]
+                        
+                        # Convert koala to BGR (from RGBA)
+                        koala_bgr = cv2.cvtColor(koala, cv2.COLOR_RGBA2BGR)
+                        alpha = koala[:, :, 3] / 255.0  # Alpha channel (0-1)
+                        
+                        # Apply stronger alpha blending for better visibility
+                        alpha = np.clip(alpha * 1.2, 0, 1)  # Boost alpha for more visibility
+                        
+                        # Apply alpha blending
+                        for c in range(3):
+                            roi[:, :, c] = (1 - alpha) * roi[:, :, c] + alpha * koala_bgr[:, :, c]
+                        
+                        # Place the blended result back in the frame
+                        frame[koala_position_y:koala_position_y + koala.shape[0], 
+                              koala_position_x:koala_position_x + koala.shape[1]] = roi
+                
+                # Add status text to show koala is active
+                if len(koala_frames) > 0:
+                    status_text = f"Koala: {'Active' if front_person is not None else 'Waiting for person'}"
+                    cv2.putText(frame, status_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                
+                # Encode and yield the frame
+                _, jpeg = cv2.imencode('.jpg', frame)
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+                
+        finally:
+            cap.release()
+            
+    return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/video_feed')

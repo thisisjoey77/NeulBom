@@ -78,8 +78,39 @@ ipcMain.handle('check-microphone-permission', async () => {
     const status = systemPreferences.getMediaAccessStatus('microphone');
     console.log('IPC: Microphone permission status:', status);
     return status;
+  } else if (process.platform === 'win32') {
+    // On Windows, we need to check if microphone access is available
+    try {
+      const { spawn } = require('child_process');
+      return new Promise((resolve) => {
+        const checkMic = spawn('powershell', ['-Command', 'Get-WmiObject -Class Win32_SoundDevice | Select-Object -First 1'], { 
+          stdio: 'pipe',
+          windowsHide: true 
+        });
+        
+        let hasOutput = false;
+        checkMic.stdout.on('data', (data) => {
+          if (data.toString().trim()) {
+            hasOutput = true;
+          }
+        });
+        
+        checkMic.on('close', (code) => {
+          console.log('IPC: Windows microphone check result:', hasOutput ? 'granted' : 'denied');
+          resolve(hasOutput ? 'granted' : 'denied');
+        });
+        
+        checkMic.on('error', () => {
+          console.log('IPC: Windows microphone check error, assuming granted');
+          resolve('granted');
+        });
+      });
+    } catch (error) {
+      console.error('IPC: Error checking Windows microphone:', error);
+      return 'granted'; // Assume granted on error
+    }
   }
-  return 'granted'; // Non-macOS platforms
+  return 'granted'; // Other platforms
 });
 
 ipcMain.handle('request-microphone-permission', async () => {
@@ -93,8 +124,28 @@ ipcMain.handle('request-microphone-permission', async () => {
       console.error('IPC: Error in askForMediaAccess:', error);
       return false;
     }
+  } else if (process.platform === 'win32') {
+    // On Windows, we can't programmatically request permissions
+    // Show instructions to the user
+    console.log('IPC: Windows microphone permission request - showing instructions');
+    const { dialog } = require('electron');
+    const result = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Microphone Permission Required',
+      message: 'Please allow microphone access for Neulbom',
+      detail: 'Go to Windows Settings > Privacy & Security > Microphone\nTurn on "Allow desktop apps to access your microphone"',
+      buttons: ['Open Settings', 'I\'ve Done This', 'Cancel'],
+      defaultId: 0
+    });
+    
+    if (result.response === 0) {
+      // Open Windows Settings
+      require('child_process').spawn('ms-settings:privacy-microphone', { shell: true });
+    }
+    
+    return result.response !== 2; // Return true unless cancelled
   }
-  return true; // Non-macOS platforms
+  return true; // Other platforms
 });
 
 // Add camera permission handlers alongside microphone ones
@@ -103,8 +154,39 @@ ipcMain.handle('check-camera-permission', async () => {
     const status = systemPreferences.getMediaAccessStatus('camera');
     console.log('IPC: Camera permission status:', status);
     return status;
+  } else if (process.platform === 'win32') {
+    // On Windows, we need to check if camera access is available
+    try {
+      const { spawn } = require('child_process');
+      return new Promise((resolve) => {
+        const checkCam = spawn('powershell', ['-Command', 'Get-PnpDevice -FriendlyName "*camera*" | Where-Object {$_.Status -eq "OK"} | Select-Object -First 1'], { 
+          stdio: 'pipe',
+          windowsHide: true 
+        });
+        
+        let hasOutput = false;
+        checkCam.stdout.on('data', (data) => {
+          if (data.toString().trim()) {
+            hasOutput = true;
+          }
+        });
+        
+        checkCam.on('close', (code) => {
+          console.log('IPC: Windows camera check result:', hasOutput ? 'granted' : 'denied');
+          resolve(hasOutput ? 'granted' : 'denied');
+        });
+        
+        checkCam.on('error', () => {
+          console.log('IPC: Windows camera check error, assuming granted');
+          resolve('granted');
+        });
+      });
+    } catch (error) {
+      console.error('IPC: Error checking Windows camera:', error);
+      return 'granted'; // Assume granted on error
+    }
   }
-  return 'granted'; // Non-macOS platforms
+  return 'granted'; // Other platforms
 });
 
 ipcMain.handle('request-camera-permission', async () => {
@@ -118,8 +200,28 @@ ipcMain.handle('request-camera-permission', async () => {
       console.error('IPC: Error in askForMediaAccess camera:', error);
       return false;
     }
+  } else if (process.platform === 'win32') {
+    // On Windows, we can't programmatically request permissions
+    // Show instructions to the user
+    console.log('IPC: Windows camera permission request - showing instructions');
+    const { dialog } = require('electron');
+    const result = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Camera Permission Required',
+      message: 'Please allow camera access for Neulbom',
+      detail: 'Go to Windows Settings > Privacy & Security > Camera\nTurn on "Allow desktop apps to access your camera"',
+      buttons: ['Open Settings', 'I\'ve Done This', 'Cancel'],
+      defaultId: 0
+    });
+    
+    if (result.response === 0) {
+      // Open Windows Settings
+      require('child_process').spawn('ms-settings:privacy-webcam', { shell: true });
+    }
+    
+    return result.response !== 2; // Return true unless cancelled
   }
-  return true; // Non-macOS platforms
+  return true; // Other platforms
 });
 
 // Simplified permission dialog that focuses on getUserMedia
@@ -158,6 +260,34 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     }
+  });
+  
+  // Handle permissions for Windows and other platforms
+  win.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    console.log('Permission request:', permission);
+    
+    // Always allow camera and microphone permissions
+    if (permission === 'camera' || permission === 'microphone' || permission === 'media') {
+      console.log('✓ Granting permission for:', permission);
+      callback(true);
+    } else {
+      console.log('✗ Denying permission for:', permission);
+      callback(false);
+    }
+  });
+  
+  // Handle permission checks
+  win.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    console.log('Permission check:', permission, 'from:', requestingOrigin);
+    
+    // Allow camera and microphone permissions
+    if (permission === 'camera' || permission === 'microphone' || permission === 'media') {
+      console.log('✓ Permission check passed for:', permission);
+      return true;
+    }
+    
+    console.log('✗ Permission check failed for:', permission);
+    return false;
   });
   
   // DevTools enabled for debugging
@@ -222,14 +352,38 @@ app.whenReady().then(() => {
     console.error('✗ Backend executable not found!');
     console.error('  Make sure the Python backend has been compiled to an executable.');
     console.error('  Run: npm run prebuild');
-    // Show error to user but continue loading the app
-    setTimeout(() => {
-      const { dialog } = require('electron');
-      dialog.showErrorBox(
-        'Backend Not Found', 
-        'The motion detection backend could not be found. Motion-based games will not work.\n\nTo fix this, rebuild the app or contact support.'
-      );
-    }, 2000);
+    
+    // For Windows, try to find Python and run the script directly
+    if (process.platform === 'win32') {
+      const pythonScript = app.isPackaged
+        ? path.join(process.resourcesPath, 'jump_server.py')
+        : path.join(__dirname, 'jump_server.py');
+      
+      if (fs.existsSync(pythonScript)) {
+        console.log('✓ Found Python script, will try to run directly:', pythonScript);
+        backendPath = pythonScript;
+        workingDir = path.dirname(pythonScript);
+      } else {
+        console.error('✗ Python script not found either:', pythonScript);
+        // Show error to user but continue loading the app
+        setTimeout(() => {
+          const { dialog } = require('electron');
+          dialog.showErrorBox(
+            'Backend Not Found', 
+            'The motion detection backend could not be found. Motion-based games will not work.\n\nPlease ensure Python 3.8+ is installed and run:\npip install -r requirements.txt\n\nThen restart the application.'
+          );
+        }, 2000);
+      }
+    } else {
+      // Show error to user but continue loading the app
+      setTimeout(() => {
+        const { dialog } = require('electron');
+        dialog.showErrorBox(
+          'Backend Not Found', 
+          'The motion detection backend could not be found. Motion-based games will not work.\n\nTo fix this, rebuild the app or contact support.'
+        );
+      }, 2000);
+    }
   }
 
   console.log('=== Backend Executable Configuration ===');
@@ -267,12 +421,54 @@ app.whenReady().then(() => {
         PYTHONPATH: workingDir
       };
 
-      backendProcess = spawn(backendPath, ['--port', BACKEND_PORT.toString(), '--host', BACKEND_HOST], {
-        cwd: workingDir,
-        stdio: 'pipe',
-        detached: false,
-        env: env
-      });
+      // Determine if we're running a Python script or executable
+      const isLaunchingPyScript = backendPath && backendPath.endsWith('.py');
+      
+      if (isLaunchingPyScript) {
+        // Try to find Python executable
+        const pythonExecutables = ['python', 'python3', 'py'];
+        let pythonExec = null;
+        
+        for (const pyExec of pythonExecutables) {
+          try {
+            const { spawn } = require('child_process');
+            const testProcess = spawn(pyExec, ['--version'], { stdio: 'pipe' });
+            pythonExec = pyExec;
+            testProcess.kill();
+            break;
+          } catch (error) {
+            // Continue to next Python executable
+          }
+        }
+        
+        if (pythonExec) {
+          console.log(`✓ Found Python executable: ${pythonExec}`);
+          backendProcess = spawn(pythonExec, [backendPath, '--port', BACKEND_PORT.toString(), '--host', BACKEND_HOST], {
+            cwd: workingDir,
+            stdio: 'pipe',
+            detached: false,
+            env: env
+          });
+        } else {
+          console.error('✗ Python executable not found!');
+          setTimeout(() => {
+            const { dialog } = require('electron');
+            dialog.showErrorBox(
+              'Python Not Found', 
+              'Python is required to run the motion detection backend.\n\nPlease install Python 3.8+ and the required packages:\npip install -r requirements.txt'
+            );
+          }, 2000);
+          return;
+        }
+      } else {
+        // Run as executable
+        backendProcess = spawn(backendPath, ['--port', BACKEND_PORT.toString(), '--host', BACKEND_HOST], {
+          cwd: workingDir,
+          stdio: 'pipe',
+          detached: false,
+          env: env
+        });
+      }
 
       backendProcess.stdout.on('data', (data) => {
         try {

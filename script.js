@@ -287,7 +287,18 @@ window.addEventListener('DOMContentLoaded', function() {
           if (loadingOverlay) loadingOverlay.style.display = 'none';
         })
         .catch(function(err) {
-          if (loadingOverlay) loadingOverlay.textContent = '카메라 접근이 불가합니다.';
+          console.error('Local camera access error:', err);
+          if (err.name === 'NotAllowedError') {
+            if (loadingOverlay) loadingOverlay.textContent = '카메라 권한이 거부되었습니다. 시스템 설정에서 카메라 권한을 허용해주세요.';
+            // Try to open Windows camera settings if on Windows
+            if (navigator.userAgent.includes('Windows') && window.electronAPI) {
+              window.electronAPI.requestCameraPermission();
+            }
+          } else if (err.name === 'NotFoundError') {
+            if (loadingOverlay) loadingOverlay.textContent = '카메라가 발견되지 않았습니다.';
+          } else {
+            if (loadingOverlay) loadingOverlay.textContent = '카메라 접근이 불가합니다: ' + err.message;
+          }
         });
     }
 
@@ -315,6 +326,25 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// Also reinitialize camera when the page becomes visible (for back navigation)
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    console.log('Page became visible, reinitializing camera...');
+    // Small delay to ensure page is fully loaded
+    setTimeout(() => {
+      initializeMainPageCamera();
+    }, 500);
+  }
+});
+
+// Also reinitialize when the page is focused (for back navigation)
+window.addEventListener('focus', function() {
+  console.log('Window focused, reinitializing camera...');
+  setTimeout(() => {
+    initializeMainPageCamera();
+  }, 500);
+});
+
 // Main page camera initialization
 async function initializeMainPageCamera() {
   const localCamera = document.getElementById('localCamera');
@@ -327,6 +357,25 @@ async function initializeMainPageCamera() {
   }
   
   console.log('Initializing main page camera...');
+  
+  // Clean up any existing camera streams first
+  if (localCamera.srcObject) {
+    console.log('Cleaning up existing local camera stream...');
+    localCamera.srcObject.getTracks().forEach(track => {
+      track.stop();
+      console.log('Stopped existing track:', track.kind);
+    });
+    localCamera.srcObject = null;
+  }
+  
+  // Reset display states
+  localCamera.style.display = 'none';
+  yoloFeed.style.display = 'none';
+  
+  // Clear any existing yolo feed src
+  if (yoloFeed.src) {
+    yoloFeed.src = '';
+  }
   
   // Check camera permissions in Electron
   const isBuiltElectron = typeof window !== 'undefined' && window.process && window.process.type === 'renderer';
@@ -370,25 +419,69 @@ async function initializeMainPageCamera() {
   
   function startLocalCamera() {
     console.log('Starting local camera...');
+    
+    // Get fresh references to the elements
+    const localCamera = document.getElementById('localCamera');
+    const yoloFeed = document.getElementById('yoloFeed');
+    const cameraStatus = document.getElementById('cameraStatus');
+    
+    if (!localCamera || !yoloFeed) {
+      console.error('Camera elements not found');
+      return;
+    }
+    
     if (cameraStatus) cameraStatus.textContent = '로컬 카메라 시작 중...';
     
-    // Start with a simple video tag showing local camera
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(function(stream) {
-          console.log('Local camera stream obtained');
-          localCamera.srcObject = stream;
-          localCamera.style.display = 'block';
-          yoloFeed.style.display = 'none'; // Make sure AI feed is hidden
-          if (cameraStatus) cameraStatus.textContent = '로컬 카메라 (AI 준비 중...)';
-          
-          // Now start checking for AI backend
-          pollForAIBackend();
-        })
-        .catch(function(err) {
-          console.error('Camera access error:', err);
-          if (cameraStatus) cameraStatus.textContent = '카메라 접근이 불가합니다.';
-        });
+    // Check for camera permissions first (especially on Windows)
+    if (window.electronAPI && window.electronAPI.checkCameraPermission) {
+      window.electronAPI.checkCameraPermission().then(status => {
+        console.log('Camera permission status:', status);
+        if (status === 'denied') {
+          if (cameraStatus) cameraStatus.textContent = '카메라 권한이 필요합니다. 설정에서 허용해주세요.';
+          window.electronAPI.requestCameraPermission();
+          return;
+        }
+        // Continue with camera access
+        accessCamera();
+      }).catch(err => {
+        console.error('Error checking camera permission:', err);
+        // Continue anyway
+        accessCamera();
+      });
+    } else {
+      // Non-electron or fallback
+      accessCamera();
+    }
+    
+    function accessCamera() {
+      // Start with a simple video tag showing local camera
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(function(stream) {
+            console.log('Local camera stream obtained');
+            localCamera.srcObject = stream;
+            localCamera.style.display = 'block';
+            yoloFeed.style.display = 'none'; // Make sure AI feed is hidden
+            if (cameraStatus) cameraStatus.textContent = '로컬 카메라 (AI 준비 중...)';
+            
+            // Now start checking for AI backend
+            pollForAIBackend();
+          })
+          .catch(function(err) {
+            console.error('Camera access error:', err);
+            if (err.name === 'NotAllowedError') {
+              if (cameraStatus) cameraStatus.textContent = '카메라 권한이 거부되었습니다. 시스템 설정에서 카메라 권한을 허용해주세요.';
+              // Try to open Windows camera settings if on Windows
+              if (navigator.userAgent.includes('Windows') && window.electronAPI) {
+                window.electronAPI.requestCameraPermission();
+              }
+            } else if (err.name === 'NotFoundError') {
+              if (cameraStatus) cameraStatus.textContent = '카메라가 발견되지 않았습니다.';
+            } else {
+              if (cameraStatus) cameraStatus.textContent = '카메라 접근이 불가합니다: ' + err.message;
+            }
+          });
+      }
     }
   }
   
@@ -399,14 +492,17 @@ async function initializeMainPageCamera() {
   function checkForAIBackend() {
     console.log('Checking for AI backend...');
     
+    // Get fresh references to the elements
+    const cameraStatus = document.getElementById('cameraStatus');
+    
     // First check if backend is alive
     fetch('http://localhost:5001/people_count')
       .then(res => {
         if (res.ok) {
           console.log('Backend server is alive, now checking video feed...');
           
-          // Backend is responding, now check video feed
-          fetch('http://localhost:5001/video-feed-369', { method: 'HEAD' })
+          // Backend is responding, now check main video feed
+          fetch('http://localhost:5001/video-feed-main', { method: 'HEAD' })
             .then(res => {
               console.log('AI video feed response status:', res.status);
               
@@ -442,6 +538,17 @@ async function initializeMainPageCamera() {
   
   function switchToAICamera() {
     console.log('Switching to AI camera...');
+    
+    // Get fresh references to the elements
+    const localCamera = document.getElementById('localCamera');
+    const yoloFeed = document.getElementById('yoloFeed');
+    const cameraStatus = document.getElementById('cameraStatus');
+    
+    if (!localCamera || !yoloFeed) {
+      console.error('Camera elements not found during switch');
+      return;
+    }
+    
     console.log('Local camera element:', localCamera);
     console.log('AI feed element:', yoloFeed);
     console.log('Local camera srcObject before:', localCamera.srcObject);
@@ -466,7 +573,8 @@ async function initializeMainPageCamera() {
     setTimeout(() => {
       console.log('Now starting AI feed after camera release delay...');
       
-      const aiUrl = 'http://localhost:5001/video-feed-369';
+      // Use the new main video feed with koala animation
+      const aiUrl = 'http://localhost:5001/video-feed-main';
       console.log('Setting AI feed src to:', aiUrl);
       
       // Add event listeners before setting src
@@ -482,7 +590,7 @@ async function initializeMainPageCamera() {
       
       yoloFeed.onload = function() {
         console.log('AI feed loaded successfully');
-        if (cameraStatus) cameraStatus.textContent = 'AI 사람 감지 카메라 활성';
+        if (cameraStatus) cameraStatus.textContent = 'AI 사람 감지 카메라 활성 (코알라 애니메이션 포함)';
       };
       
       // Set the source and display

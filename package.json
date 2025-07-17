@@ -19,7 +19,8 @@
   "devDependencies": {
     "@electron/notarize": "^2.5.0",
     "electron": "^30.0.0",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "electron-icon-builder": "^2.0.1"
   },
   "build": {
     "appId": "com.jaewookkim.neulbom",
@@ -49,11 +50,25 @@
         "to": "yolov8n-pose.pt"
       },
       {
+        "from": "jump_server.py",
+        "to": "jump_server.py"
+      },
+      {
+        "from": "requirements.txt",
+        "to": "requirements.txt"
+      },
+      {
+        "from": "setup_windows_backend.bat",
+        "to": "setup_windows_backend.bat"
+      },
+      {
         "from": "dist/jump_server",
-        "to": "jump_server"
+        "to": "jump_server",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
-    
     "mac": {
       "target": [
         {
@@ -64,7 +79,7 @@
           ]
         }
       ],
-      "icon": "coalanew.png",
+      "icon": "build/icons/icon.icns",
       "category": "public.app-category.games",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -85,17 +100,12 @@
             "x64",
             "ia32"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
         }
       ],
-      "requestedExecutionLevel": "asInvoker",
-      "verifyUpdateCodeSignature": false
+      "requestedExecutionLevel": "requireAdministrator",
+      "verifyUpdateCodeSignature": false,
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
+      "icon": "build/icons/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -107,7 +117,16 @@
       "uninstallDisplayName": "Neulbom - Educational Games",
       "license": null,
       "allowElevation": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "perMachine": true,
+      "deleteAppDataOnUninstall": true,
+      "installerHeaderIcon": "build/icons/icon.ico",
+      "installerIcon": "build/icons/icon.ico",
+      "uninstallerIcon": "build/icons/icon.ico",
+      "installerSidebar": "build/icons/256x256.png",
+      "uninstallerSidebar": "build/icons/256x256.png",
+      "include": "scripts/installer.nsh",
+      "warningsAsErrors": false
     },
     "linux": {
       "target": [

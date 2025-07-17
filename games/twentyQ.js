@@ -1,6 +1,5 @@
 // twentyQ.js - 스무고개 (20 Questions) Game
 
-// You should move OpenAI API calls to the backend for security in production!
 let OPENAI_API_KEY = null;
 
 // Initialize API key from main process
@@ -16,6 +15,7 @@ let OPENAI_API_KEY = null;
     console.error('Failed to load API key:', err);
   }
 })();
+
 let questionCount = 0;
 let maxQuestions = 20;
 let gameOver = false;
@@ -35,9 +35,19 @@ window.onload = function() {
   let stream = null;
   let speechCallback = null;
 
+  // Add transcript display to show mic status and instructions
+  const transcriptDisplay = document.createElement('div');
+  transcriptDisplay.id = 'voiceInputDisplay';
+  transcriptDisplay.style = 'font-size:1.2em;color:#2196F3;margin:16px 0;padding:12px;background:#f5f5f5;border-radius:8px;min-height:40px;font-weight:bold;text-align:center;';
+  transcriptDisplay.innerHTML = '🎤 <strong>M 키를 누르고 있는 동안 질문하세요</strong><br><small>M 키를 놓으면 음성 인식이 시작됩니다</small>';
+  
+  // Add to the container after questionCount
+  const questionCountElement = document.getElementById('questionCount');
+  questionCountElement.parentNode.insertBefore(transcriptDisplay, questionCountElement.nextSibling);
+
   // M key push-to-talk functionality
   document.addEventListener('keydown', async (event) => {
-    if (event.code === 'KeyM' && !isRecording && speechCallback) {
+    if (event.code === 'KeyM' && !isRecording && speechCallback && !gameOver) {
       event.preventDefault();
       await startSpeechRecording();
     }
@@ -55,8 +65,8 @@ window.onload = function() {
       isRecording = true;
       audioChunks = [];
       
-      voiceBtn.textContent = '🎙️ 녹음 중... (M키를 놓으면 인식 시작)';
-      voiceBtn.disabled = true;
+      transcriptDisplay.innerHTML = '🎙️ <strong>녹음 중...</strong><br><small>M키를 놓으면 인식 시작</small>';
+      transcriptDisplay.style.color = '#f44336';
       
       stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -80,8 +90,8 @@ window.onload = function() {
       
     } catch (err) {
       console.error('Error starting recording:', err);
-      voiceBtn.textContent = '녹음 오류';
-      voiceBtn.disabled = false;
+      transcriptDisplay.innerHTML = '❌ <strong>녹음 오류</strong><br><small>' + err.message + '</small>';
+      transcriptDisplay.style.color = '#f44336';
       isRecording = false;
     }
   }
@@ -94,7 +104,8 @@ window.onload = function() {
     return new Promise((resolve) => {
       mediaRecorder.onstop = async () => {
         try {
-          voiceBtn.textContent = '음성 인식 중...';
+          transcriptDisplay.innerHTML = '🔄 <strong>음성 인식 중...</strong><br><small>잠시만 기다려주세요</small>';
+          transcriptDisplay.style.color = '#ff9800';
           
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
           const arrayBuffer = await audioBlob.arrayBuffer();
@@ -102,18 +113,17 @@ window.onload = function() {
           
           const text = await window.electron.ipcRenderer.invoke('recognize-audio', buffer);
           
-          voiceBtn.textContent = '🎤 M키를 눌러서 질문';
-          voiceBtn.disabled = false;
+          transcriptDisplay.innerHTML = '🎤 <strong>M 키를 누르고 있는 동안 질문하세요</strong><br><small>M 키를 놓으면 음성 인식이 시작됩니다</small>';
+          transcriptDisplay.style.color = '#2196F3';
           
-          if (speechCallback) {
+          if (speechCallback && text.trim()) {
             speechCallback(text.trim());
-            speechCallback = null;
           }
           
         } catch (err) {
           console.error('Speech recognition error:', err);
-          voiceBtn.textContent = '🎤 M키를 눌러서 질문';
-          voiceBtn.disabled = false;
+          transcriptDisplay.innerHTML = '❌ <strong>음성 인식 오류</strong><br><small>' + err.message + '</small>';
+          transcriptDisplay.style.color = '#f44336';
         } finally {
           if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -127,30 +137,13 @@ window.onload = function() {
     });
   }
 
-  // Remove the text input and button if present
-  const questionForm = document.getElementById('questionForm');
-  questionForm.innerHTML = '';
-
-  // Add the voice input button
-  const voiceBtn = document.createElement('button');
-  voiceBtn.type = 'button';
-  voiceBtn.textContent = '🎤 M키를 눌러서 질문';
-  voiceBtn.style.margin = '12px 0 0 0';
-  voiceBtn.style.fontSize = '1.1em';
-  voiceBtn.disabled = true; // Initially disabled until user presses M
-  questionForm.appendChild(voiceBtn);
-
-  // Add transcript display
-  const transcriptDisplay = document.createElement('div');
-  transcriptDisplay.id = 'voiceInputDisplay';
-  transcriptDisplay.style = 'font-size:1.1em;color:#1976d2;margin:12px 0 0 0;min-height:28px;';
-  transcriptDisplay.textContent = 'M 키를 누르고 있는 동안 질문하세요';
-  questionForm.appendChild(transcriptDisplay);
-
   // Set up speech callback for questions
   function setupSpeechInput() {
+    if (gameOver) return;
+    
     speechCallback = (transcript) => {
-      transcriptDisplay.textContent = `질문: ${transcript}`;
+      transcriptDisplay.innerHTML = `💬 <strong>질문:</strong> ${transcript}<br><small>AI가 답변을 준비하고 있습니다...</small>`;
+      transcriptDisplay.style.color = '#4CAF50';
       processQuestion(transcript);
     };
   }
@@ -159,11 +152,9 @@ window.onload = function() {
   setupSpeechInput();
 
   async function processQuestion(transcript) {
-    transcriptDisplay.textContent = '입력: ' + transcript;
-    
     if (gameOver) return;
     
-    // First, send to AI without incrementing question count
+    // Add user question to messages
     messages.push({ role: 'user', content: transcript });
     document.getElementById('aiAnswer').textContent = 'AI가 생각 중...';
     
@@ -206,40 +197,42 @@ window.onload = function() {
       
       // Check for game end conditions
       if (questionCount >= 20) {
-        document.getElementById('finalResult').textContent = '20개 질문이 모두 끝났습니다! 정답을 맞혀보세요!';
+        document.getElementById('finalResult').textContent = '20개 질문이 모두 끝났습니다!';
         endGame();
+      } else {
+        // Reset for next question
+        setupSpeechInput();
       }
-      
-      // Reset for next question
-      setupSpeechInput();
       
     } catch (err) {
       console.error('Error processing question:', err);
       document.getElementById('aiAnswer').textContent = '오류가 발생했습니다: ' + err.message;
+      transcriptDisplay.innerHTML = '❌ <strong>오류 발생</strong><br><small>다시 시도해주세요</small>';
+      transcriptDisplay.style.color = '#f44336';
+      // Reset for retry
+      setupSpeechInput();
     }
   }
 
-  document.getElementById('questionForm').onsubmit = function(e) {
-    e.preventDefault();
-    // Disable text input submission
-    return false;
-  };
-  
+  // Restart button functionality
   document.getElementById('restartBtn').onclick = function() {
     questionCount = 0;
     gameOver = false;
-    messages = [messages[0]];
+    messages = [messages[0]]; // Keep only the system message
     document.getElementById('currentQuestion').textContent = questionCount;
     document.getElementById('aiAnswer').textContent = '';
     document.getElementById('finalResult').textContent = '';
-    transcriptDisplay.textContent = 'M 키를 누르고 있는 동안 질문하세요';
+    transcriptDisplay.innerHTML = '🎤 <strong>M 키를 누르고 있는 동안 질문하세요</strong><br><small>M 키를 놓으면 음성 인식이 시작됩니다</small>';
+    transcriptDisplay.style.color = '#2196F3';
     document.getElementById('restartBtn').style.display = 'none';
     setupSpeechInput();
   };
-};
 
-function endGame() {
-  gameOver = true;
-  speechCallback = null; // Disable speech input
-  document.getElementById('restartBtn').style.display = 'inline-block';
-}
+  function endGame() {
+    gameOver = true;
+    speechCallback = null; // Disable speech input
+    transcriptDisplay.innerHTML = '🎯 <strong>게임 종료</strong><br><small>다시 시작하려면 아래 버튼을 클릭하세요</small>';
+    transcriptDisplay.style.color = '#9c27b0';
+    document.getElementById('restartBtn').style.display = 'inline-block';
+  }
+};

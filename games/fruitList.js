@@ -107,18 +107,8 @@ window.addEventListener('DOMContentLoaded', () => {
   let audioChunks = [];
 
   function setupSpeechRecognition() {
-    // Show speech instructions
-    const instructionsDiv = document.createElement('div');
-    instructionsDiv.innerHTML = `
-      <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 0.95em; color: #1976d2;">
-        <strong>음성 입력:</strong> M 키를 누르고 있는 동안 말하세요. 키를 떼면 음성이 인식됩니다.
-      </div>
-    `;
-    const container = document.querySelector('.twentyq-container, .game-container');
-    if (container) {
-      container.insertBefore(instructionsDiv, container.children[1]);
-    }
-
+    // Remove redundant speech instructions (not needed for fruit game)
+    
     // M key push-to-talk functionality
     document.addEventListener('keydown', function(event) {
       if (event.key === 'm' || event.key === 'M') {
